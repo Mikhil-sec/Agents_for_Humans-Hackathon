@@ -35,7 +35,7 @@ from typing import Any
 
 from quiet_hours_contracts import Policy, ProposedAction
 
-from .policy import Verdict, evaluate
+from .policy import Verdict
 
 logger = logging.getLogger(__name__)
 
