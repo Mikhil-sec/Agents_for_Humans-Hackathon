@@ -1,0 +1,30 @@
+[project]
+name = "quiet-hours-integrations"
+version = "0.1.0"
+description = "Quiet Hours - providers, mock and live (Lane C)"
+requires-python = ">=3.11"
+dependencies = [
+    "quiet-hours-contracts",
+    "pydantic>=2.7",
+    "python-ulid>=2.7",
+]
+
+[project.optional-dependencies]
+live = [
+    "google-api-python-client",
+    "google-auth-oauthlib",
+    "boto3>=1.34",
+]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["quiet_hours_integrations*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

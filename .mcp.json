@@ -1,0 +1,29 @@
+{
+  "//": "Shared MCP servers for the Quiet Hours team. Commit this file so every developer and every AI coding assistant gets identical tooling. See docs/AI_AGENT_PROTOCOL.md.",
+  "mcpServers": {
+    "aws-knowledge": {
+      "//": "Managed, GA, remote. No AWS account or API key required. Current Bedrock / AgentCore / Strands docs.",
+      "type": "http",
+      "url": "https://knowledge-mcp.global.api.aws"
+    },
+    "context7": {
+      "//": "Version-accurate library docs (Strands, Next.js, FastAPI, Pydantic). Free tier, no key.",
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "playwright": {
+      "//": "Browser automation. Used to verify the web app and capture demo footage.",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "aws-api": {
+      "//": "Local AWS API access via your configured profile. Lane C mostly. Requires `uv`.",
+      "command": "uvx",
+      "args": ["awslabs.aws-api-mcp-server@latest"],
+      "env": {
+        "AWS_REGION": "us-east-1",
+        "READ_OPERATIONS_ONLY": "true"
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# Quiet Hours — directory ownership.
+# GitHub will request a review from the owner on any PR touching their lane.
+# Enable "Require review from Code Owners" in branch protection for `main`.
+#
+# Replace the placeholder handles below with real GitHub usernames on day 1.
+
+# Default: repo lead reviews anything unclaimed.
+*                       @Mikhil-sec
+
+# --- Lane A: the Strands agent -------------------------------------------
+/agent/                 @Mikhil-sec
+/docs/lanes/LANE_A_AGENT.md   @Mikhil-sec
+/docs/status/PROGRESS_A.md    @Mikhil-sec
+
+# --- Lane B: API + web app -----------------------------------------------
+/api/                   @TEAMMATE-B
+/web/                   @TEAMMATE-B
+/docs/lanes/LANE_B_WEB.md     @TEAMMATE-B
+/docs/status/PROGRESS_B.md    @TEAMMATE-B
+
+# --- Lane C: integrations, fixtures, infra -------------------------------
+/integrations/          @TEAMMATE-C
+/infra/                 @TEAMMATE-C
+/fixtures/              @TEAMMATE-C
+/docs/lanes/LANE_C_INTEGRATIONS.md  @TEAMMATE-C
+/docs/status/PROGRESS_C.md          @TEAMMATE-C
+
+# --- Frozen shared surface: needs TWO approvals --------------------------
+# See docs/CONTRACTS.md. Do not change these without a `contract:` PR.
+/contracts/             @Mikhil-sec @TEAMMATE-B @TEAMMATE-C
+/docs/CONTRACTS.md      @Mikhil-sec @TEAMMATE-B @TEAMMATE-C

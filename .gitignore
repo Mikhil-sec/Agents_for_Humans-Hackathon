@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+
+# Env & secrets  -- NEVER commit these
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json
+token.json
+.aws-sam/
+
+# Local agent state
+.local/
+sessions/
+*.sqlite3
+
+# Infra
+cdk.out/
+.agentcore/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,17 @@
+[project]
+name = "quiet-hours-contracts"
+version = "1.0.0"
+description = "Frozen shared data contracts for Quiet Hours"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2.7"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["quiet_hours_contracts*"]
+
+[tool.ruff]
+line-length = 100

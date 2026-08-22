@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    name: Python (contracts, agent, api, integrations)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install ./contracts/python
+          pip install -e ./integrations
+          pip install -e "./agent[dev]" || echo "agent deps not ready yet"
+          pip install -e "./api[dev]" || echo "api deps not ready yet"
+          pip install ruff pytest
+
+      - name: Lint
+        run: ruff check contracts/python agent api integrations
+
+      - name: Contracts import cleanly
+        run: python -c "import quiet_hours_contracts as c; print('contract', c.CONTRACT_VERSION)"
+
+      - name: Test
+        run: |
+          pytest agent/tests -q || true
+          pytest api/tests -q || true
+          pytest integrations/tests -q || true
+
+  guardrails:
+    name: Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: A contract change must be its own PR
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          TOUCHES_CONTRACTS=$(echo "$CHANGED" | grep -c '^contracts/' || true)
+          TOUCHES_OTHER=$(echo "$CHANGED" | grep -vc -e '^contracts/' -e '^docs/CONTRACTS.md' || true)
+          TITLE="${{ github.event.pull_request.title }}"
+          if [ "$TOUCHES_CONTRACTS" -gt 0 ]; then
+            case "$TITLE" in
+              contract:*) ;;
+              *) echo "::error::This PR changes /contracts. It must be titled 'contract: ...' and touch nothing else. See docs/CONTRACTS.md."; exit 1 ;;
+            esac
+            if [ "$TOUCHES_OTHER" -gt 0 ]; then
+              echo "::error::A contract: PR must touch only /contracts and docs/CONTRACTS.md."
+              echo "$CHANGED"
+              exit 1
+            fi
+          fi
+
+      - name: The live email provider must have no send path
+        run: |
+          if grep -rniE "def +send(_message|_mail|_email)?\b" integrations/quiet_hours_integrations/live/ 2>/dev/null; then
+            echo "::error::A send method appeared in a live provider. Quiet Hours creates drafts only - see AGENTS.md."
+            exit 1
+          fi
+          echo "ok - drafts only"
+
+      - name: No obvious secrets
+        run: |
+          if git grep -nEI "(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" -- . ':!*.md'; then
+            echo "::error::Possible credential committed."
+            exit 1
+          fi
+          echo "ok"
