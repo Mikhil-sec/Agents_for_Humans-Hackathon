@@ -13,8 +13,8 @@ Ask the human you are working with which lane they own, or infer it from the cur
 | Lane | Owner | You may edit | You may read |
 |---|---|---|---|
 | **A** | Mikhil | `/agent`, `docs/lanes/LANE_A_AGENT.md`, `docs/status/PROGRESS_A.md` | everything |
-| **B** | Teammate B | `/api`, `/web`, `docs/lanes/LANE_B_WEB.md`, `docs/status/PROGRESS_B.md` | everything |
-| **C** | Teammate C | `/integrations`, `/infra`, `/fixtures`, `docs/lanes/LANE_C_INTEGRATIONS.md`, `docs/status/PROGRESS_C.md` | everything |
+| **B** | Diya | `/api`, `/web`, `docs/lanes/LANE_B_WEB.md`, `docs/status/PROGRESS_B.md` | everything |
+| **C** | Yorvan | `/integrations`, `/infra`, `/fixtures`, `docs/lanes/LANE_C_INTEGRATIONS.md`, `docs/status/PROGRESS_C.md` | everything |
 
 Reading any file in the repo is always allowed and encouraged. **Writing outside your lane is not.**
 
@@ -55,7 +55,7 @@ At the end of every working session, append a dated entry to `docs/status/PROGRE
 - Graph wiring for the Negotiator node (branch `a/negotiator`)
 
 **Blocked / needs a human**
-- Need Teammate C to confirm the transaction fixture includes a duplicate-charge case
+- Need Yorvan to confirm the transaction fixture includes a duplicate-charge case
 
 **Notes for the next session**
 - `interrupt()` returns the raw string response; we parse it in `resume.py`, not in the hook
@@ -102,7 +102,7 @@ Do this before your first edit:
 
 Respond with something like:
 
-> That change lives in `/web`, which is Lane B. I have not modified it. Here is exactly what needs to change so Teammate B (or their assistant) can apply it: ...
+> That change lives in `/web`, which is Lane B. I have not modified it. Here is exactly what needs to change so Diya (or their assistant) can apply it: ...
 
 Then continue with whatever part of the task *is* in your lane. Do not block entirely on the cross-lane portion — deliver everything you can.
 

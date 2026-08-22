@@ -1,6 +1,6 @@
 # Progress — Lane B
 
-**Owner:** Teammate B
+**Owner:** Diya
 **Directories:** /api, /web
 **Branch prefix:** `b/`
 

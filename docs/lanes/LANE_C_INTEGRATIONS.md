@@ -1,6 +1,6 @@
 # Lane C — Integrations, Fixtures and Infrastructure
 
-**Owner:** Teammate C
+**Owner:** Yorvan
 **Directories you own:** `/integrations`, `/fixtures`, `/infra`
 **Branch prefix:** `c/`
 **Progress file:** `docs/status/PROGRESS_C.md`

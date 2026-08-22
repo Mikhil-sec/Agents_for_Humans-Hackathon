@@ -30,8 +30,8 @@ Every approval the user gives teaches a policy. Over four simulated weeks the ag
 | Path | Lane | Owner | Brief |
 |---|---|---|---|
 | `/agent` | A | Mikhil | [LANE_A_AGENT.md](docs/lanes/LANE_A_AGENT.md) |
-| `/api`, `/web` | B | Teammate B | [LANE_B_WEB.md](docs/lanes/LANE_B_WEB.md) |
-| `/integrations`, `/infra`, `/fixtures` | C | Teammate C | [LANE_C_INTEGRATIONS.md](docs/lanes/LANE_C_INTEGRATIONS.md) |
+| `/api`, `/web` | B | Diya | [LANE_B_WEB.md](docs/lanes/LANE_B_WEB.md) |
+| `/integrations`, `/infra`, `/fixtures` | C | Yorvan | [LANE_C_INTEGRATIONS.md](docs/lanes/LANE_C_INTEGRATIONS.md) |
 | `/contracts` | **shared, frozen** | all three | [CONTRACTS.md](docs/CONTRACTS.md) |
 | `/docs` | shared | see per-file CODEOWNERS | — |
 

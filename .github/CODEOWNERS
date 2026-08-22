@@ -1,31 +1,29 @@
 # Quiet Hours — directory ownership.
 # GitHub will request a review from the owner on any PR touching their lane.
 # Enable "Require review from Code Owners" in branch protection for `main`.
-#
-# Replace the placeholder handles below with real GitHub usernames on day 1.
 
 # Default: repo lead reviews anything unclaimed.
 *                       @Mikhil-sec
 
-# --- Lane A: the Strands agent -------------------------------------------
+# --- Lane A: the Strands agent (Mikhil) -----------------------------------
 /agent/                 @Mikhil-sec
 /docs/lanes/LANE_A_AGENT.md   @Mikhil-sec
 /docs/status/PROGRESS_A.md    @Mikhil-sec
 
-# --- Lane B: API + web app -----------------------------------------------
-/api/                   @TEAMMATE-B
-/web/                   @TEAMMATE-B
-/docs/lanes/LANE_B_WEB.md     @TEAMMATE-B
-/docs/status/PROGRESS_B.md    @TEAMMATE-B
+# --- Lane B: API + web app (Diya) -----------------------------------------
+/api/                   @diya-r6
+/web/                   @diya-r6
+/docs/lanes/LANE_B_WEB.md     @diya-r6
+/docs/status/PROGRESS_B.md    @diya-r6
 
-# --- Lane C: integrations, fixtures, infra -------------------------------
-/integrations/          @TEAMMATE-C
-/infra/                 @TEAMMATE-C
-/fixtures/              @TEAMMATE-C
-/docs/lanes/LANE_C_INTEGRATIONS.md  @TEAMMATE-C
-/docs/status/PROGRESS_C.md          @TEAMMATE-C
+# --- Lane C: integrations, fixtures, infra (Yorvan) ------------------------
+/integrations/          @yorvan2401
+/infra/                 @yorvan2401
+/fixtures/              @yorvan2401
+/docs/lanes/LANE_C_INTEGRATIONS.md  @yorvan2401
+/docs/status/PROGRESS_C.md          @yorvan2401
 
 # --- Frozen shared surface: needs TWO approvals --------------------------
 # See docs/CONTRACTS.md. Do not change these without a `contract:` PR.
-/contracts/             @Mikhil-sec @TEAMMATE-B @TEAMMATE-C
-/docs/CONTRACTS.md      @Mikhil-sec @TEAMMATE-B @TEAMMATE-C
+/contracts/             @Mikhil-sec @diya-r6 @yorvan2401
+/docs/CONTRACTS.md      @Mikhil-sec @diya-r6 @yorvan2401

@@ -1,6 +1,6 @@
 # Progress — Lane C
 
-**Owner:** Teammate C
+**Owner:** Yorvan
 **Directories:** /integrations, /fixtures, /infra
 **Branch prefix:** `c/`
 

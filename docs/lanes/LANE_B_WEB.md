@@ -1,6 +1,6 @@
 # Lane B — API and Web App
 
-**Owner:** Teammate B
+**Owner:** Diya
 **Directories you own:** `/api`, `/web`
 **Branch prefix:** `b/`
 **Progress file:** `docs/status/PROGRESS_B.md`
