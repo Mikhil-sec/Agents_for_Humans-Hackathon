@@ -47,9 +47,7 @@ def make_action(
         rationale="because",
         params={"merchant": merchant},
         estimated_impact=(
-            Money(amount_minor=impact_minor, currency="GBP")
-            if impact_minor is not None
-            else None
+            Money(amount_minor=impact_minor, currency="GBP") if impact_minor is not None else None
         ),
         evidence=[Evidence(signal_id="sig_1", excerpt="...", source_ref=None)],
         created_at=NOW,

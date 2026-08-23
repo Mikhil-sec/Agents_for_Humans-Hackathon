@@ -218,9 +218,7 @@ def policy_from_decision(
     if action.estimated_impact is not None and approve:
         bound = f" up to {action.estimated_impact}"
 
-    description = (
-        f"{verb} {action.kind.value.replace('_', ' ')} for {target}{bound}"
-    ).strip()
+    description = (f"{verb} {action.kind.value.replace('_', ' ')} for {target}{bound}").strip()
 
     return Policy(
         policy_id=policy_id,

@@ -47,4 +47,6 @@ async def invoke(payload: dict[str, Any]):
 if __name__ == "__main__":
     os.environ.setdefault("QH_PROVIDER_MODE", "mock")
     # app.run()
-    raise SystemExit("Lane A: uncomment BedrockAgentCoreApp once strands + bedrock-agentcore are installed")
+    raise SystemExit(
+        "Lane A: uncomment BedrockAgentCoreApp once strands + bedrock-agentcore are installed"
+    )
