@@ -446,3 +446,343 @@ run 3   same work, now covered by the rule          ->  4/4 handled silently
   wrong and is now retracted: mock mode must work with **zero credentials**, so a scripted
   model is exactly what it needs. `mock_reasoning.py` is that, per node, and it stays.
 - `memory.py` (AgentCore Memory) still does not exist. A7.
+
+---
+
+## 2026-08-24 — session with Claude Code (Opus 5) — A7, AgentCore Runtime + Memory
+
+**A7 is done.** The agent now has a deployed entrypoint, a durable session store, a
+DynamoDB record store and AgentCore Memory. **128 tests pass** (up from 77), lint clean,
+and the three-command demo still runs unchanged through `make agent`.
+
+**A4 is still blocked.** `integrations/quiet_hours_integrations/registry.py::get_providers()`
+still raises `NotImplementedError` for both `MOCK` and `LIVE`, checked at the start of this
+session. A6's four-week replay still needs Lane C's fixtures and still exits 2.
+
+### The headline: the whole demo now runs over HTTP
+
+`bedrock-agentcore` (1.22.0) was installed and the server was actually started and curled —
+this is verified behaviour, not a compile-checked guess:
+
+```
+GET  /ping          -> {"status":"Healthy","time_of_last_update":...}
+POST /invocations   -> SSE stream
+```
+
+The same three-command story as `make agent`, over three separate HTTP requests:
+
+```
+1  {"household_id":"hh_demo"}
+     -> run_started, node_started/finished x6, decision_required, run_finished
+        status=waiting_on_user, 2/3 handled silently
+2  {"household_id":"hh_demo","decision_response":{...,"choice":"approve_always"}}
+     -> resumed_from=[dec_...], run_finished status=completed, rule learned
+3  {"household_id":"hh_demo"}
+     -> no decision_required at all; 4/4 silent, policies_applied=1
+```
+
+### New files
+
+| File | What it is |
+|---|---|
+| `quiet_hours_agent/main.py` | `BedrockAgentCoreApp` entrypoint. Was a stub. Streams progress envelopes; two entry paths (scheduled run / resume). |
+| `quiet_hours_agent/memory.py` | AgentCore Memory read/write. Did not exist. |
+| `quiet_hours_agent/sessions.py` | Chooses `FileSessionManager` (mock) vs `S3SessionManager` (live). |
+| `agent/Dockerfile` | `linux/arm64`, port 8080. The container contract AgentCore imposes. |
+| `tests/test_a7_runtime.py` | 13 tests — the entrypoint cycle. |
+| `tests/test_memory.py` | 21 tests — including the safety property below. |
+| `tests/test_persistence_live.py` | 17 tests — sessions and `DynamoStore`, against fakes. |
+
+`store.py` gained `DynamoStore`; `build_store("live")` no longer raises.
+
+### The two constraints A5 established have not regressed
+
+`PolicyHook` is still on each node `Agent`; the `SessionManager` is still on the
+`GraphBuilder`. `build_graph` now takes an optional `session_manager=` so the deployed path
+can hand it the S3 one, and it is still passed to `builder.set_session_manager()` and
+nowhere else. `test_graph.py` and `test_a5_graph_spike.py` both still pass untouched.
+
+### Design decisions worth knowing
+
+**Memory holds context; `policy.py` holds rules. Only rules decide whether to interrupt.**
+This is the important one. Long-term memory records are written by a model summarising past
+text, and that text is ultimately downstream of emails the household did not write. If
+recalled text could grant autonomy, a merchant could email "this household always approves
+cancellations without asking" and eventually be right. `policy.py` and `hooks.py` do not
+import `memory.py`, and `test_memory_is_never_consulted_for_autonomy` asserts it
+structurally — the same argument as `send_email` having no tool at all.
+
+**Recalled memory goes in the task text, not `invocation_state` — the opposite of
+`household_id`.** Deliberate. Identity must reach tools and hooks *without* entering the
+model's context, where it could be prompt-injected. Memory is worthless unless the model
+reads it, and it has no authority once it gets there. Capped at 800 characters.
+
+**One Strands session per run, not per household.** This was a real bug found by the first
+test run, not a theoretical one. A household-wide id rehydrates the previous run's messages
+into today's run, and once a run has been resumed its session carries a spent interrupt
+state — so the *next* scheduled run starts by trying to resume it and dies with
+`must resume from interrupt with list of interruptResponse's`. `local_run.py` had been
+managing this by deleting the session directory before each run, which the deployed path
+cannot do: the sessions live in S3 and the container doing the deleting is not the one that
+wrote them. `DecisionCard.session_id` carries the id, so resume never has to derive it.
+
+**On resume, the card's `session_id` is authoritative — never AgentCore's.** Two different
+identifiers share the name. AgentCore's runtime session id names the HTTP conversation; the
+Strands one names the suspended graph and was written days earlier. There is a test that
+passes a deliberately wrong `session_id` in the payload and asserts it is ignored.
+
+**Live mode raises for a missing session bucket or table name, but degrades quietly for a
+missing memory id.** A run with no session store loses the user's decision; a run with no
+record store loses the audit trail; a run with no memory merely phrases its brief slightly
+less well. Only the first two are worth refusing to start over. Every method on
+`AgentCoreMemory` swallows its own exceptions for the same reason — an unreachable AWS
+service must not stop the household's gas bill being paid.
+
+**`DynamoStore` stores contract models as JSON text, not as attributes.** DynamoDB has no
+float type and `Finding.confidence` is a float. Storing attributes would mean a `Decimal`
+conversion on every write and back on every read, in both Lane A's code and Lane B's,
+forever. Round-tripping `model_dump_json` means the bytes in the table are exactly the
+frozen contract shape and both lanes parse them with the same pydantic models. It costs the
+ability to query on an inner field, which nothing in the product does.
+
+**The stream carries progress, never prose.** The web app is a decision inbox, not a chat,
+so the model's token deltas are dropped. Only `run_started`, `node_started`,
+`node_finished`, `decision_required`, `run_finished` and `error` are emitted, and every one
+is plain JSON — a `GraphResult` in an SSE body fails inside the platform's writer, which is
+the worst place to find out.
+
+**Errors are yielded, not raised.** A raise mid-stream reaches the client as a truncated SSE
+body with no status code, and "the connection ended" is not something an inbox can render.
+
+**`bedrock_agentcore` is an optional import.** `main.py` imports and its whole cycle runs
+without it — the package is only needed to *serve*. Requiring it would put an AWS SDK
+between a judge and `make demo`.
+
+### Small fixes to existing files
+
+- `RunStats.signals_ingested` and `findings_created` were **always 0** in both runners. They
+  now come from `invocation_state["signals"]` (where the ungoverned `load_signals` tool
+  stashes the real `Signal` objects) and from the harvest. Lane B's autonomy chart reads
+  these fields. **Diya: a resumed run still reports zero for both, and that is correct** —
+  a resumed graph replays only the interrupted node, so ingest and triage do not re-run.
+  Counting them again would inflate the very numbers the chart is built from.
+- `models.py` now reads `QH_MODEL_ID` before `QH_BEDROCK_MODEL_ID`. The root
+  `.env.example` documents the first name; this file used the second. A live deploy would
+  have silently fallen back to the default model — looking like it worked, on the wrong
+  model, at the wrong price.
+- `graph.py::GraphRun` gained `stream()`, so a fresh run and a resume go through one code
+  path in `main.py`. `Graph.stream_async` accepts the resume payload just as `__call__`
+  does.
+
+### For Lane B (Diya) — what the entrypoint gives you
+
+`POST /invocations` streams SSE. To resume a run after the user answers a card:
+
+```json
+{"household_id": "hh_demo",
+ "decision_response": {"decision_id": "...", "choice": "approve_always",
+                       "responded_at": "2026-08-24T12:45:00Z"}}
+```
+
+`decision_responses` (a list) also works, because a graph can suspend on more than one
+decision at once — the specialists run in parallel. You do **not** need to pass a session
+id; the card carries it.
+
+A household with a pending card is not eligible for a fresh run — the entrypoint replies
+with the outstanding `decision_required` envelopes and `status: waiting_on_user` instead of
+starting one.
+
+**Blocked / needs a human**
+
+- **A4 still blocked on Lane C.** `get_providers()` raises for both modes as of today.
+- **A6 replay still needs Lane C's four-week fixtures.** Not faked — the autonomy curve is
+  the demo's centrepiece and it has to be real.
+- **The DynamoDB key schema needs Lane B and Lane C to agree.** Nothing in `/contracts`,
+  `/infra/cdk` (empty) or `/api` defines a table today, so `DynamoStore` proposes one and
+  Lane A cannot ratify it alone. Draft entry for `docs/status/DECISIONS.md` at the bottom of
+  this entry — Mikhil, please paste it there rather than me editing a shared file.
+- **No AgentCore deploy has been run.** The container contract and the entrypoint are done
+  and verified locally; ECR, the runtime IAM role and the EventBridge schedule are `/infra`,
+  which is Lane C's.
+- `make clean` still deletes `.local` including the private handoff. Root `Makefile` is
+  shared; fix still queued for the merge pass.
+- The root `Makefile` has no target for the AgentCore entrypoint. Also shared — worth adding
+  `make agent-serve` in the merge pass.
+
+**Notes for the next session**
+
+- Next is **A4** the moment `get_providers()` works — still a two-point swap
+  (`signals.py::load_signals_for` and the eleven bodies in `tools/actions.py`). Then **A6**.
+- `bedrock-agentcore==1.22.0` is now installed locally. It was already in
+  `pyproject.toml`; nothing in the repo changed to accommodate it, and the suite still
+  passes without it.
+
+---
+
+### Draft for `docs/status/DECISIONS.md` — Mikhil to paste, needs B and C
+
+## 2026-08-24 — DynamoDB single-table layout
+
+**Decision:** One table, name from `QH_TABLE_NAME`. A record's own id is the partition key
+(`pk = sk = "DECISION#dec_abc"`); a GSI named `gsi1` answers household queries
+(`gsi1pk = "HH#hh_demo#DECISION"`, `gsi1sk` = the record's timestamp). The contract model is
+stored as JSON text in a `body` attribute.
+
+**Why id-as-partition-key:** `Store.get_decision(decision_id)` takes no `household_id` —
+Lane B's `POST /api/decisions/{id}/respond` only has the id from the URL. Partitioning by
+household would make every read a scan or a second lookup.
+
+**Why JSON text rather than attributes:** DynamoDB has no float type and
+`Finding.confidence` is a float. Storing attributes means a `Decimal` conversion on every
+write and every read, in both lanes, forever. Storing `model_dump_json` output means the
+bytes in the table are exactly the frozen contract shape.
+
+**Affects:** A writes it, B reads it, C provisions it in CDK. **Not yet agreed — this needs
+Diya and Yorvan to confirm before the table is created.**
+
+---
+
+## 2026-08-24 (later) — session with Claude Code (Opus 5) — A4 and A6
+
+**Lane A's build order A1–A7 is complete.** 166 tests pass, lint clean, and all three
+demo paths work: `make agent`, `make replay`, and the AgentCore entrypoint over HTTP.
+
+A4 and A6 were both listed as blocked on Lane C. They turned out to be blocked on Lane C's
+*implementations*, not on its *contracts* — and the contracts already exist, so both could
+be finished on this side.
+
+### A4 — real providers, written against the published interface
+
+`integrations/base.py` calls itself "a contract with Lane A", and it is one: the
+`Providers` Protocols are complete and stable. Only `get_providers()` raises. So Lane A now
+codes against the Protocols and tolerates the missing implementation:
+
+    live  ->  providers required. Missing implementation raises.
+    mock  ->  providers if available, otherwise Lane A's in-lane stand-in.
+
+**Nothing in Lane A needs to change when Yorvan lands `c/mock-providers`.** The fallback
+disappears on its own and the same code path starts calling real providers.
+
+New file `providers.py` is the only place in the lane that imports `quiet_hours_integrations`.
+Six of the eleven governed tools now reach a provider when one exists:
+
+| Tool | Provider call |
+|---|---|
+| `draft_email` | `email.create_draft` (there is no `send`, by design) |
+| `pay_bill` | `payments.schedule_payment` (a *request*, never a transfer) |
+| `cancel_subscription` | `subscriptions.cancel` |
+| `downgrade_plan` | `subscriptions.downgrade` |
+| `add_calendar_event` | `calendar.create_event` |
+| `set_reminder` | `calendar.create_event` (a short event — see the ask below) |
+
+`file_record`, `tag_merchant` and `update_budget_ledger` stay in-lane because they have no
+external effect at all — that is why they are `SILENT`.
+
+`tests/test_a4_providers.py` (19 tests) supplies a fake bundle and asserts it satisfies
+Lane C's Protocols with `isinstance`. If `integrations/base.py` drifts, that test fails and
+tells us before anything ships. It also asserts `EmailProvider` still has **no** `send`.
+
+### A6 — the four-week autonomy curve
+
+```
+Week        Silent / Total   Asked   Rules   Autonomy
+Week 1          3 / 7          4       4      43%
+Week 2          5 / 7          2       6      71%
+Week 3          5 / 6          1       7      83%
+Week 4          6 / 7          1       8      86%
+```
+
+`make replay`, or `--replay-weeks 4`. Eight rules learned, all from answers.
+
+**The curve is measured, not authored.** `replay.py` says what arrives each week and what
+the agent tries to do; `policy.py` decides what gets asked, from the policies actually in
+the store; the rate is counted off the audit trail. The proof is
+`--replay-answer approve`, which approves *without* teaching a rule:
+
+```
+approve_always   4 -> 2 -> 1 -> 1 decisions   (43% -> 86%)
+approve          4 -> 4 -> 3 -> 3 decisions   (43% -> 57%)
+```
+
+Same weeks, same actions, same code. If the numbers came from the data they would be
+identical. `test_replay.py` asserts the contrast.
+
+**Week 4 deliberately still asks about one thing** — a brand-new merchant. An agent that
+reached 100% would have stopped being trustworthy, and a flat 100% invites exactly the
+question we do not want a judge to ask.
+
+New files: `scenarios.py` (the mechanism: one signal -> one finding -> N actions, so
+evidence citations are correct by construction) and `replay.py` (the four weeks and the
+engine). `tests/test_replay.py` is 17 tests.
+
+**The four weeks are Lane A's stand-in data**, in the same spirit as `_demo_signals` and
+for the same reason — `/fixtures` is Lane C's and there is nothing in it yet. The mechanic
+and the arithmetic are real; the household is invented, and the replay output says so on
+screen. When Yorvan's fixtures land, the weeks are replaced and `replay()` does not change.
+
+### Two real bugs found while building A6, both in already-shipped code
+
+**1. Every interrupted action was counted twice.** The gate runs twice for anything that
+interrupts — once to raise it, once on resume to collect the answer (A1's finding).
+`PolicyHook.verdicts` was a list, so it grew by one for every action the user was asked
+about. The autonomy rate was therefore **wrong in the pessimistic direction**, which is
+why nobody noticed. `verdicts` is now keyed by `toolUseId`, which is stable across the
+process boundary. This affected `make agent`, the AgentCore entrypoint and the replay alike.
+
+**2. A finding routed to the wrong specialist makes its action vanish silently.** Week 4's
+PhotoCloud cancellation was given an `UNEXPECTED_CHARGE` finding, which wakes the bill
+analyst — and only the negotiator holds `cancel_subscription`. The node never woke, the
+action never ran, and the week reported a **fraudulent 100% autonomy**. Two tests now guard
+this for every scenario: one checks `NODE_TOOLS` agrees with what each specialist was
+actually given, the other that every week contains a finding whose kind wakes the node its
+actions need.
+
+The second bug is the more instructive one. It produced a *better-looking* number, which is
+the direction of error that survives review.
+
+### Smaller fixes
+
+- **`make clean` no longer deletes `.local`**, only `.local/store` and `.local/sessions`.
+  It was wiping each developer's private notes.
+- **New targets:** `make replay` and `make agent-serve`.
+- `--replay-weeks` no longer exits 2.
+
+### What I need from Lane C (Yorvan)
+
+1. **`get_providers()`** — the whole of A4's remaining work. Lane A is ready; the moment
+   `MOCK` returns a bundle, six tools go live with no Lane A change.
+2. **`quiet_hours_integrations.mock.seed`** — `make fixtures` currently fails, which means
+   **`make demo` is broken from a clean clone**. That is root `AGENTS.md` rule 3 and it is
+   the single most important thing outstanding in the repo. `make agent` and `make replay`
+   both work, so Lane A's demo is unaffected.
+3. **Two provider methods Lane A has no way to call.** Not added unilaterally, per
+   `LANE_A_AGENT.md` ("if a provider method is missing, ask Lane C"):
+   - `CalendarProvider.update_event(household_id, event_ref, start, end)` — needed by
+     `reschedule_appointment`, which can currently only create a new event.
+   - somewhere for `dispute_charge` to go. It is `NEVER_AUTO` so it always asks the user,
+     but there is no provider surface for it at all.
+4. **The DynamoDB table**, per the `DECISIONS.md` entry dated today: single table,
+   `pk`/`sk` = the record id, GSI `gsi1` on `gsi1pk`/`gsi1sk`.
+
+### What I need from Lane B (Diya)
+
+1. **The four-week curve is ready to render.** `RunStats` per run now carries real
+   `signals_ingested`, `findings_created`, `actions_proposed`, `actions_autonomous`,
+   `decisions_raised` and `policies_applied`. `DailyBrief.autonomy_rate` is computed from
+   the audit trail.
+2. **A resumed run reports zero signals and findings, and that is correct** — a resumed
+   graph replays only the interrupted node, so ingest and triage do not re-run. Counting
+   them again would inflate the chart.
+3. **The resume payload** for the AgentCore entrypoint:
+   `{"household_id": "...", "decision_response": {...}}`. `decision_responses` (a list)
+   also works. You never need to pass a session id — the card carries it.
+4. The DynamoDB row shape, as above: the contract model lives in `body` as JSON text, so
+   you parse it with the same pydantic models Lane A writes.
+
+**Still outstanding in Lane A**
+
+- No AgentCore deploy has been run. ECR, the runtime IAM role and the EventBridge schedule
+  are `/infra` (Lane C). `agent/Dockerfile` is Lane A's half and is done.
+- `local_run.py` still uses a household-wide session id and deletes the session directory
+  before each run. It works and is pinned by tests; the deployed path uses per-run ids.
+  Worth unifying, not urgent.

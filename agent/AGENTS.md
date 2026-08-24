@@ -15,6 +15,10 @@ If the task seems to need it, stop and tell the human what needs to change and w
 The Strands agent: the multi-agent graph, the tools, and the policy engine that decides
 whether an action executes silently or interrupts the user.
 
+`providers.py` is the **only** place that touches `/integrations`. Live mode requires Lane
+C's bundle and raises without it; mock mode falls back to the in-lane stand-in. Never add a
+second import of `quiet_hours_integrations` elsewhere in the lane.
+
 ## Non-negotiables in this directory
 
 1. **`policy.py` must never call a model.** It is deterministic code over an explicit
@@ -50,6 +54,46 @@ pytest -q
 
 Mock mode must always work with zero credentials. If your change breaks that, the change
 is wrong.
+
+The deployed entrypoint is the same cycle behind an HTTP surface, and it also runs in mock
+mode with no AWS account:
+
+```bash
+QH_PROVIDER_MODE=mock python -m quiet_hours_agent.main    # serves :8080
+curl -XPOST localhost:8080/invocations -H 'Content-Type: application/json'   -d '{"household_id":"hh_demo"}'
+```
+
+`main.py` and `local_run.py` are twins — same graph, same gate, same store. A change to the
+cycle that only lands in one of them is a bug.
+
+## The autonomy curve
+
+```bash
+QH_PROVIDER_MODE=mock python -m quiet_hours_agent.local_run --replay-weeks 4
+```
+
+Four simulated weeks; the interrupt rate falls as the policy engine learns. **The
+curve is measured, never authored.** `replay.py` says what arrives and what the agent
+tries; `policy.py` decides what gets asked; the rate is counted off the audit trail.
+
+`--replay-answer approve` answers without teaching a rule and produces a much flatter
+line. That contrast is the proof, and `test_replay.py` asserts it.
+
+If you add a week, `test_replay.py` checks two things that fail silently otherwise: every
+action must be routed to a node that owns its tool, and every week must contain a finding
+whose kind actually wakes that node. Get either wrong and the action never runs — the week
+just looks quieter than it is.
+
+## Two identifiers called `session_id`
+
+`DecisionCard.session_id` is the **Strands** session: it names the suspended graph, was
+written when the card was raised, and is the only thing that rehydrates the pending tool
+call. AgentCore's runtime session id names the *HTTP conversation*. On resume, always read
+it off the card — never off the payload or the request context.
+
+Sessions are **one per run**, not one per household. A household-wide id rehydrates the
+previous run's messages into today's run, and leaves a spent interrupt state that makes the
+next run fail on resume. See `sessions.py`.
 
 ## Before you finish
 
