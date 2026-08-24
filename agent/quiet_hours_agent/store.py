@@ -4,8 +4,8 @@ Two implementations behind one interface:
 
 * `JsonStore`   — plain files on disk. What mock mode uses, and what `make demo`
   runs on. Must work with **zero credentials**.
-* `DynamoStore` — the deployed path. Deliberately not written yet (A7); the
-  interface below is the seam it will slot into.
+* `DynamoStore` — the deployed path (A7). Single-table, and it stores the same
+  contract models as JSON text so both lanes parse identical bytes.
 
 Everything crossing this boundary is a contract model from `quiet_hours_contracts`,
 never a loose dict. Lane B reads the same records through its own code, so the
@@ -223,11 +223,237 @@ def build_activity_entry(
     )
 
 
+# --------------------------------------------------------------------------
+# The deployed path
+# --------------------------------------------------------------------------
+
+TABLE_NAME_ENV = "QH_TABLE_NAME"
+
+TYPE_ACTION = "ACTION"
+TYPE_DECISION = "DECISION"
+TYPE_ACTIVITY = "ACTIVITY"
+TYPE_POLICY = "POLICY"
+TYPE_RUN = "RUN"
+
+HOUSEHOLD_INDEX = "gsi1"
+"""Name of the GSI that answers every `list_*_for_household` query."""
+
+
+class StoreConfigError(RuntimeError):
+    """Live mode was asked for without the configuration it requires."""
+
+
+class DynamoStore:
+    """Single-table DynamoDB, holding the same contract models `JsonStore` holds.
+
+    **Key schema** (proposed — see the note at the bottom of `PROGRESS_A.md`; the
+    table itself is Lane C's CDK and Lane B reads these rows, so this layout needs
+    both of them to agree before it is real):
+
+        pk            "DECISION#dec_abc"        partition: the record's own id
+        sk            "DECISION#dec_abc"        same; the table is a pure key-value
+                                                store for the id lookups the
+                                                `Store` protocol requires
+        gsi1pk        "HH#hh_demo#DECISION"     partition: one household's records
+                                                of one type
+        gsi1sk        "2026-08-24T07:15:00Z"    sort: chronological, so the inbox
+                                                and the activity trail come back
+                                                in order without a client-side sort
+        body          '{"decision_id": ...}'    the contract model, as JSON text
+
+    Two decisions in there are worth defending.
+
+    **Ids are their own partition key.** `Store.get_decision(decision_id)` takes
+    no `household_id` — Lane B's `POST /api/decisions/{id}/respond` only has the
+    id from the URL. A household-partitioned table would force every read to be a
+    scan or a second lookup. The household query is the secondary access pattern,
+    so it goes on the secondary index.
+
+    **The model is stored as a JSON string, not as attributes.** DynamoDB has no
+    float type, and `Finding.confidence` is a float; storing attributes would mean
+    a `Decimal` conversion on every write and back again on every read, in both
+    Lane A's code and Lane B's, forever. Round-tripping `model_dump_json` means
+    the bytes in the table are exactly the frozen contract shape and both lanes
+    parse them with the same pydantic models. It costs the ability to query on an
+    inner field, which nothing in the product does.
+
+    Not covered here: pagination. Every list method takes the first page, which
+    is right for a household's decisions and policies and wrong in principle for a
+    year of activity. Bounded deliberately rather than accidentally — a demo
+    household produces tens of rows, and an unbounded scan on stage is worse than
+    a truncated list.
+    """
+
+    def __init__(self, table_name: str | None = None, *, table: Any | None = None) -> None:
+        self.table_name = table_name or os.environ.get(TABLE_NAME_ENV, "").strip()
+        if not self.table_name and table is None:
+            raise StoreConfigError(
+                f"live mode needs {TABLE_NAME_ENV}. Set QH_PROVIDER_MODE=mock to run offline."
+            )
+
+        if table is not None:
+            self._table = table
+        else:
+            import boto3
+
+            self._table = boto3.resource(
+                "dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1")
+            ).Table(self.table_name)
+
+    # -- low-level ---------------------------------------------------------
+
+    @staticmethod
+    def _key(record_type: str, record_id: str) -> str:
+        return f"{record_type}#{record_id}"
+
+    @staticmethod
+    def _household_key(record_type: str, household_id: str) -> str:
+        return f"HH#{household_id}#{record_type}"
+
+    def _put(
+        self,
+        record_type: str,
+        record_id: str,
+        *,
+        household_id: str,
+        sort_value: datetime,
+        model: Any,
+    ) -> None:
+        key = self._key(record_type, record_id)
+        self._table.put_item(
+            Item={
+                "pk": key,
+                "sk": key,
+                "gsi1pk": self._household_key(record_type, household_id),
+                "gsi1sk": sort_value.isoformat(),
+                "type": record_type,
+                "body": model.model_dump_json(),
+            }
+        )
+
+    def _get(self, record_type: str, record_id: str, model_cls: Any) -> Any | None:
+        key = self._key(record_type, record_id)
+        response = self._table.get_item(Key={"pk": key, "sk": key})
+        item = response.get("Item")
+        if not item:
+            return None
+        return model_cls.model_validate_json(item["body"])
+
+    def _query_household(self, record_type: str, household_id: str, model_cls: Any) -> list[Any]:
+        # Imported here, not at module scope: `JsonStore` is the mock-mode path
+        # and mock mode must run with neither credentials nor boto3 installed.
+        from boto3.dynamodb.conditions import Key
+
+        response = self._table.query(
+            IndexName=HOUSEHOLD_INDEX,
+            KeyConditionExpression=Key("gsi1pk").eq(self._household_key(record_type, household_id)),
+            ScanIndexForward=True,
+        )
+        out: list[Any] = []
+        for item in response.get("Items", []):
+            try:
+                out.append(model_cls.model_validate_json(item["body"]))
+            except (KeyError, ValueError):
+                logger.warning("skipping unreadable %s row: %s", record_type, item.get("pk"))
+        return out
+
+    # -- actions -----------------------------------------------------------
+
+    def put_action(self, action: ProposedAction) -> None:
+        self._put(
+            TYPE_ACTION,
+            action.action_id,
+            household_id=action.household_id,
+            sort_value=action.created_at,
+            model=action,
+        )
+
+    def get_action(self, action_id: str) -> ProposedAction | None:
+        return self._get(TYPE_ACTION, action_id, ProposedAction)
+
+    # -- decisions ---------------------------------------------------------
+
+    def save_decision(self, card: DecisionCard) -> None:
+        self._put(
+            TYPE_DECISION,
+            card.decision_id,
+            household_id=card.household_id,
+            sort_value=card.created_at,
+            model=card,
+        )
+
+    def get_decision(self, decision_id: str) -> DecisionCard | None:
+        return self._get(TYPE_DECISION, decision_id, DecisionCard)
+
+    def resolve_decision(self, decision_id: str, response: DecisionResponse) -> DecisionCard | None:
+        """Mark a card answered. Idempotent — the hook replays it on resume."""
+        card = self.get_decision(decision_id)
+        if card is None:
+            logger.warning("resolve_decision: no card %s", decision_id)
+            return None
+
+        card.status = DecisionStatus.RESOLVED
+        card.resolved_at = response.responded_at or utcnow()
+        self.save_decision(card)
+        return card
+
+    def list_pending_decisions(self, household_id: str) -> list[DecisionCard]:
+        # Status is filtered here rather than folded into `gsi1pk`. Putting it in
+        # the key would make resolving a card a delete-and-reinsert across two
+        # partitions, and a crash between the two would lose the card entirely.
+        return [
+            card
+            for card in self._query_household(TYPE_DECISION, household_id, DecisionCard)
+            if card.status is DecisionStatus.PENDING
+        ]
+
+    # -- activity ----------------------------------------------------------
+
+    def write_activity(self, entry: ActivityEntry) -> None:
+        self._put(
+            TYPE_ACTIVITY,
+            entry.entry_id,
+            household_id=entry.household_id,
+            sort_value=entry.occurred_at,
+            model=entry,
+        )
+
+    def list_activity(self, household_id: str) -> list[ActivityEntry]:
+        # `gsi1sk` is `occurred_at`, so the index returns these already ordered.
+        return self._query_household(TYPE_ACTIVITY, household_id, ActivityEntry)
+
+    # -- policies ----------------------------------------------------------
+
+    def list_policies(self, household_id: str) -> list[Policy]:
+        return self._query_household(TYPE_POLICY, household_id, Policy)
+
+    def save_policy(self, policy: Policy) -> None:
+        self._put(
+            TYPE_POLICY,
+            policy.policy_id,
+            household_id=policy.household_id,
+            sort_value=policy.created_at,
+            model=policy,
+        )
+
+    # -- runs --------------------------------------------------------------
+
+    def save_run(self, run: Run) -> None:
+        self._put(
+            TYPE_RUN,
+            run.run_id,
+            household_id=run.household_id,
+            sort_value=run.started_at,
+            model=run,
+        )
+
+    def get_run(self, run_id: str) -> Run | None:
+        return self._get(TYPE_RUN, run_id, Run)
+
+
 def build_store(mode: str | None = None) -> Store:
     """Pick a store. Mock mode is the default and needs no credentials."""
     resolved = (mode or os.environ.get("QH_PROVIDER_MODE") or "mock").strip().casefold()
     if resolved == "live":
-        raise NotImplementedError(
-            "DynamoStore lands with A7. Run with QH_PROVIDER_MODE=mock until then."
-        )
+        return DynamoStore()
     return JsonStore()

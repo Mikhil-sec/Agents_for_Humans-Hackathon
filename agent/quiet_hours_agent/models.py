@@ -168,8 +168,17 @@ def build_model(
     if resolved == "live":
         from strands.models import BedrockModel
 
+        # `QH_MODEL_ID` is the name the root `.env.example` documents and the one
+        # a deployed runtime will actually have set; `QH_BEDROCK_MODEL_ID` is the
+        # name this file used first. Reading both means a live deploy picks up the
+        # configured model instead of silently falling back to the default —
+        # which would look like it worked, on the wrong model, at the wrong price.
         return BedrockModel(
-            model_id=os.environ.get("QH_BEDROCK_MODEL_ID", DEFAULT_BEDROCK_MODEL_ID),
+            model_id=(
+                os.environ.get("QH_MODEL_ID")
+                or os.environ.get("QH_BEDROCK_MODEL_ID")
+                or DEFAULT_BEDROCK_MODEL_ID
+            ),
             region_name=os.environ.get("AWS_REGION", "us-east-1"),
         )
 
