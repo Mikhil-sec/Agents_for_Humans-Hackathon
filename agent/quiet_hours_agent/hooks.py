@@ -112,13 +112,32 @@ class PolicyHook(HookProvider):
         self.run_id = run_id
         self.interrupt_name = interrupt_name
 
-        self.verdicts: list[tuple[ProposedAction, Verdict]] = []
-        """Recorded for the run's stats and the autonomy chart."""
+        self._verdicts: dict[str, tuple[ProposedAction, Verdict]] = {}
+        """Recorded for the run's stats and the autonomy chart, keyed by
+        `toolUseId` so one tool call counts once.
+
+        **The gate runs twice for every action that interrupts** — once to raise
+        the interrupt and once, on resume, to collect the answer (A1). A plain
+        list therefore counted every interrupted action twice, which deflated the
+        autonomy rate: the denominator grew by one for each thing the user was
+        asked about, and asking is precisely what the metric is supposed to
+        penalise. The headline number was wrong in the pessimistic direction,
+        which is why it survived so long unnoticed.
+
+        Keyed by `toolUseId`, which is stable across the process boundary because
+        it is persisted in the session — the same property `decision_id_for`
+        relies on. The later verdict wins: it is the one that decided the
+        outcome."""
 
         self.new_policies: list[Policy] = []
         """Policies created by APPROVE_ALWAYS / DENY_ALWAYS answers this run."""
 
         self._pending: dict[str, _GateRecord] = {}
+
+    @property
+    def verdicts(self) -> list[tuple[ProposedAction, Verdict]]:
+        """One entry per governed tool call, in the order first seen."""
+        return list(self._verdicts.values())
 
     # -- registration ------------------------------------------------------
 
@@ -136,9 +155,9 @@ class PolicyHook(HookProvider):
 
         category = self._category_of(action)
         verdict = evaluate(action, self.policies, category=category)
-        self.verdicts.append((action, verdict))
 
         tool_use_id = event.tool_use["toolUseId"]
+        self._verdicts[tool_use_id] = (action, verdict)
         record = _GateRecord(action=action, verdict=verdict)
         self._pending[tool_use_id] = record
 

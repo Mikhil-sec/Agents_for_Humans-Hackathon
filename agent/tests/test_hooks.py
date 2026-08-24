@@ -391,3 +391,48 @@ def test_a_stored_action_is_used_when_the_tool_cites_one(store):
     assert card.headline == "Cancel FitLife (£38/mo)"
     assert card.body == "Unused for 90 days."
     assert hook.verdicts[0][0].finding_id == "find_1"
+
+
+def test_an_interrupted_action_is_counted_once_across_the_resume(store):
+    """The gate runs twice for anything that interrupts — once to raise it, once
+    on resume to collect the answer (A1). `verdicts` is keyed by `toolUseId`, so
+    the second pass replaces the first rather than adding to it.
+
+    Counting both deflated the autonomy rate: the denominator grew by one for
+    every action the user was asked about, which is exactly what the metric is
+    supposed to penalise. It was wrong in the pessimistic direction, which is why
+    it went unnoticed until the A6 replay compared the count against the scenario
+    data that produced it.
+    """
+    agent, hook = build(
+        store, "cancel_subscription", {"merchant": "FitLife", "monthly_amount_minor": 3800}
+    )
+
+    result = agent("cancel it")
+    card = persist_decisions(result, store, session_id=SESSION)[0]
+    assert len(hook.verdicts) == 1, "one tool call, one verdict"
+
+    agent(build_resume_payload([(card, respond(card, DecisionChoice.APPROVE))]))
+
+    assert len(hook.verdicts) == 1, "the resume re-gates the same call, it is not a second one"
+    _action, verdict = hook.verdicts[0]
+    assert verdict.allow_silently is False
+
+
+def test_two_distinct_tool_calls_are_counted_separately(store):
+    """The other side of the dedup: keying by `toolUseId` must not collapse two
+    genuinely different actions into one. This is the failure mode A5 already hit
+    once, when parallel nodes shared a tool use id and one node's audit entry
+    overwrote another's."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+
+    from quiet_hours_agent.policy import evaluate
+
+    action = hook._action_from_tool_use(
+        {"toolUseId": "tooluse_a", "name": "file_record", "input": {"merchant": "A"}},
+        {"household_id": HOUSEHOLD, "run_id": RUN},
+    )
+    hook._verdicts["tooluse_a"] = (action, evaluate(action, []))
+    hook._verdicts["tooluse_b"] = (action, evaluate(action, []))
+
+    assert len(hook.verdicts) == 2
