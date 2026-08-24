@@ -786,3 +786,79 @@ the direction of error that survives review.
 - `local_run.py` still uses a household-wide session id and deletes the session directory
   before each run. It works and is pinned by tests; the deployed path uses per-run ids.
   Worth unifying, not urgent.
+
+---
+
+## 2026-08-24 (later still) — repository restore + the Lane A/B integration
+
+**`main` had been force-pushed away.** It pointed at an unrelated single commit with 13
+files. `/contracts`, `/agent`, `/integrations`, `/fixtures`, `/infra`, `/docs`, the
+`Makefile` and every `AGENTS.md` were gone from the default branch. Full account in
+`DECISIONS.md` under today's date.
+
+**Restored by merging, not reverting.** Lane B's commit is now a parent of `main`, so
+Diya's work and authorship survive in the history and the push was a plain fast-forward —
+no history rewrite. Three backup branches were pushed first and still exist:
+`backup/main-before-force-push`, `backup/diya-first-commit`, `backup/miks-branch`.
+
+**Verified by cloning `main` fresh from GitHub** and running `make fixtures`, `make agent`
+and the API. All green.
+
+### The integration chain, end to end
+
+`make fixtures` -> `make agent` -> API on :8000 -> eight routes serving real contract data.
+The one card in the inbox is a genuine `DecisionCard` the agent raised and left pending.
+
+### What I fixed outside Lane A, and why
+
+Flagged explicitly because it is other people's code:
+
+1. **`api/` lint (9 issues, `ruff --fix`).** Import ordering and `Optional[X]` -> `X | None`.
+   Style only. The CI lint command covers `api/`, so this was failing the build for every
+   lane, not just Lane B.
+2. **Two contract field-name lookups in `api/main.py`.** `GET /api/decisions/{id}` matched
+   `card["id"]` and `GET /api/runs/{id}` matched `run["id"]`; the frozen contract names
+   those `decision_id` and `run_id`. Every valid card 404'd. The runs lookup was worse — it
+   fell through to a fabricated `{"id": ..., "status": "completed"}`, so a miss looked like
+   a hit. It now 404s.
+3. **`Makefile`: `make api` pointed at `app.main:app`**, the scaffold stub, not Diya's real
+   `api/main.py`. `make demo` was serving a stub with one health route.
+4. **`Makefile`: `make fixtures`** falls back to Lane A's exporter when Lane C's seeder
+   raises.
+
+Nothing else in `api/` or `web/` was touched. The `respond` and `trigger-run` stubs are
+exactly as Diya wrote them — those are her design decisions, not bugs.
+
+### New in Lane A
+
+`export_fixtures.py` — runs the agent in mock mode and writes the five files
+`api/main.py` reads. Three replayed weeks answered, then a fourth left open so the inbox
+has a live card. `tests/test_export_fixtures.py` (8 tests) pins the seam: the file names,
+the list-vs-object shapes, and a contract round-trip of every record.
+
+**174 tests pass. Lint clean across all four lanes.**
+
+### Still broken, and only Diya can fix it
+
+- **`web/` cannot run or even install.** It has `app/page.tsx`,
+  `components/DecisionCard.tsx`, `lib/formatters.ts` and an **empty**
+  `package-lock.json` (zero entries) — but no `package.json`, no `tsconfig.json`, no
+  Next.js config. `make web` and `npm install` both fail.
+- **The web app calls routes the API does not serve.** `page.tsx` uses
+  `http://localhost:8000/api/v1/...`; the API serves `/api/...` with no `v1`. It also calls
+  `POST /api/v1/decisions/{id}/resolve` (API has `.../respond`) and
+  `POST /api/v1/agent/run` (API has `POST /api/runs`). Left alone deliberately: whether the
+  API gains a `/v1` prefix is a design decision, not a typo.
+- **`api/requirements.py`** is empty and misnamed — probably meant to be `requirements.txt`.
+  `api/pyproject.toml` already declares the dependencies.
+- **`api/app/`** is now dead code: the old scaffold stub, superseded by `api/main.py`.
+  Worth deleting once Diya confirms.
+- **`architecture.md`** at the root duplicates `docs/ARCHITECTURE.md` (26 lines vs 167).
+  Kept, not deleted — someone should decide which is canonical.
+
+### Still needed from Lane C
+
+Unchanged from this morning: `get_providers()`, `mock.seed` (now worked around rather than
+blocking), `CalendarProvider.update_event`, somewhere for `dispute_charge`, and the
+DynamoDB table.
+

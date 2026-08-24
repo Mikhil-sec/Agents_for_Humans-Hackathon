@@ -107,3 +107,61 @@ a delete-and-reinsert across two partitions, and a crash between the two would l
 **Affects:** A writes it (done), B reads it, C provisions the table and the `gsi1` index in
 CDK. **No pagination** — every list method takes the first page, which is right for a demo
 household and would need revisiting for a year of activity.
+
+---
+
+## 2026-08-24 — main was force-pushed away, and how it was restored
+
+**What happened:** `main` was force-pushed to an unrelated single commit containing 13
+files — Lane B's `api/` and `web/` work plus a LICENSE and an architecture note. That
+removed `/contracts`, `/agent`, `/integrations`, `/fixtures`, `/infra`, `/docs`, the
+`Makefile` and every `AGENTS.md` from the default branch. The cause was pushing from a
+directory that was never a clone of this repository.
+
+**Decision:** the orphan commit was **merged** into the real history rather than reverted,
+so Lane B's work and its authorship are both preserved. `main` now has two roots. No force
+push was needed to restore it, because merging made the orphan an ancestor.
+
+**Nothing was lost.** Three backup branches exist and should not be deleted until everyone
+has confirmed their work is present:
+
+| Branch | What it holds |
+|---|---|
+| `backup/main-before-force-push` | `main` exactly as it was before |
+| `backup/diya-first-commit` | the force-pushed commit, standalone |
+| `backup/miks-branch` | Lane A's branch at the time |
+
+**Resolutions made during the merge:** the project's MIT `LICENSE` was kept over an
+incoming truncated Apache 2.0 header (a fresh-repository default, not a relicensing
+decision); `api/__pycache__/*.pyc` were dropped as build artifacts already in
+`.gitignore`.
+
+**How to avoid a repeat:** always `git clone` this repository rather than pushing a local
+folder into it, work on a lane branch (`a/`, `b/`, `c/`), and open a PR. Branch protection
+on `main` was removed on 22 Aug; **turning it back on would have prevented this entirely**
+and is recommended.
+
+**Affects:** everyone.
+
+---
+
+## 2026-08-24 — /fixtures is generated from a real agent run until Lane C's seeder lands
+
+**Decision:** `make fixtures` tries `quiet_hours_integrations.mock.seed` first and falls
+back to `python -m quiet_hours_agent.export_fixtures`, which runs the agent in mock mode
+and writes what the run actually produced.
+
+**Why:** Lane C's seeder is still a stub, so `make fixtures` failed, `/fixtures` held no
+JSON, and every Lane B screen returned 404. `make demo` was dead at step one — the thing a
+judge runs, and root `AGENTS.md` rule 3.
+
+**Why generated rather than hand-written:** everything written comes out of `store.py`,
+which only ever holds validated contract models, so the fixtures are contract-correct by
+construction. Hand-written fixtures drift from `/contracts` silently.
+
+**This is not a replacement for Lane C's seeder.** It reads nothing from `/fixtures` and
+invents no inbox. When Yorvan's seeder lands it takes precedence again with no further
+change.
+
+**Affects:** A generates it, B reads it, C supersedes it.
+
