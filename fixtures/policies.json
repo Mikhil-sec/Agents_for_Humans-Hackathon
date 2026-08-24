@@ -1,0 +1,132 @@
+[
+  {
+    "policy_id": "pol_43acc15d17eb40909be7b165",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "cancel_subscription",
+    "merchant": "FitLife",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 3800,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always cancel subscription for FitLife up to GBP 38.00",
+    "created_from_decision_id": "dec_d7c72390e1205248abb81d1c",
+    "created_at": "2026-08-24T19:29:09.521040Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_6235ff0e08ad4d69937661a2",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "reschedule_appointment",
+    "merchant": "Bridge Street Dental",
+    "category": null,
+    "max_amount": null,
+    "effect": "auto_approve",
+    "description": "Always reschedule appointment for Bridge Street Dental",
+    "created_from_decision_id": "dec_3991f77d0f0c55eb9fb03e88",
+    "created_at": "2026-08-24T19:29:09.444035Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_6d285b8c8c0a450794e4e591",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "downgrade_plan",
+    "merchant": "BroadbandCo",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 2800,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always downgrade plan for BroadbandCo up to GBP 28.00",
+    "created_from_decision_id": "dec_853f8c715d855f1594e1772a",
+    "created_at": "2026-08-24T19:29:10.745942Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_cf8ce1c79cb84ad2b15eb415",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "cancel_subscription",
+    "merchant": "Streamly",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 1299,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always cancel subscription for Streamly up to GBP 12.99",
+    "created_from_decision_id": "dec_6229510269a45dc189507422",
+    "created_at": "2026-08-24T19:29:09.706739Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_d96ca63c051947639fdb6125",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "pay_bill",
+    "merchant": "British Gas",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 8420,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always pay bill for British Gas up to GBP 84.20",
+    "created_from_decision_id": "dec_4fad1fc6ab715a798515adb9",
+    "created_at": "2026-08-24T19:29:09.483463Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_e0e3bc30a789484193d41410",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "pay_bill",
+    "merchant": "Thames Water",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 4200,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always pay bill for Thames Water up to GBP 42.00",
+    "created_from_decision_id": "dec_7d9a74054526508a8cbd4736",
+    "created_at": "2026-08-24T19:29:10.211819Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_f10f641efaac4b2bb82057d3",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "cancel_subscription",
+    "merchant": "CloudBox",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 899,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always cancel subscription for CloudBox up to GBP 8.99",
+    "created_from_decision_id": "dec_b0c9a941309a5a1894c7801e",
+    "created_at": "2026-08-24T19:29:10.250231Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  }
+]

@@ -29,8 +29,11 @@ demo: fixtures
 	@echo "  Web  -> http://localhost:3000"
 	@echo "Run 'make agent' in a second terminal to trigger a daily run."
 
+# Lane C's seeder is the real source. Until it lands it raises NotImplementedError,
+# which would leave /fixtures empty and every Lane B screen 404 -- so fall back to
+# Lane A's exporter, which writes the same files from an actual mock-mode agent run.
 fixtures:
-	python -m quiet_hours_integrations.mock.seed --out fixtures/
+	@python -m quiet_hours_integrations.mock.seed --out fixtures/ 2>/dev/null 	  || python -m quiet_hours_agent.export_fixtures --out fixtures/
 
 agent:
 	cd agent && QH_PROVIDER_MODE=mock python -m quiet_hours_agent.local_run
@@ -42,7 +45,7 @@ replay:
 	cd agent && QH_PROVIDER_MODE=mock python -m quiet_hours_agent.local_run --replay-weeks 4
 
 api:
-	cd api && QH_PROVIDER_MODE=mock uvicorn app.main:app --reload --port 8000
+	cd api && QH_PROVIDER_MODE=mock uvicorn main:app --reload --port 8000
 
 web:
 	cd web && npm run dev

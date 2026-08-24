@@ -1,0 +1,59 @@
+[
+  {
+    "run_id": "run_5ff619af241c47248128349c",
+    "household_id": "hh_demo",
+    "trigger": "schedule",
+    "status": "completed",
+    "session_id": "qh-hh_demo-run_5ff619af241c47248128349c",
+    "started_at": "2026-08-01T00:00:00Z",
+    "finished_at": "2026-08-01T00:00:00Z",
+    "stats": {
+      "signals_ingested": 4,
+      "findings_created": 4,
+      "actions_proposed": 7,
+      "actions_autonomous": 3,
+      "decisions_raised": 4,
+      "policies_applied": 0,
+      "estimated_annual_savings": null
+    },
+    "error": null
+  },
+  {
+    "run_id": "run_d3e060bd98e1437b996e3af9",
+    "household_id": "hh_demo",
+    "trigger": "schedule",
+    "status": "completed",
+    "session_id": "qh-hh_demo-run_d3e060bd98e1437b996e3af9",
+    "started_at": "2026-08-08T00:00:00Z",
+    "finished_at": "2026-08-08T00:00:00Z",
+    "stats": {
+      "signals_ingested": 4,
+      "findings_created": 4,
+      "actions_proposed": 7,
+      "actions_autonomous": 5,
+      "decisions_raised": 2,
+      "policies_applied": 2,
+      "estimated_annual_savings": null
+    },
+    "error": null
+  },
+  {
+    "run_id": "run_11509b5d17674001be88faf4",
+    "household_id": "hh_demo",
+    "trigger": "schedule",
+    "status": "completed",
+    "session_id": "qh-hh_demo-run_11509b5d17674001be88faf4",
+    "started_at": "2026-08-15T00:00:00Z",
+    "finished_at": "2026-08-15T00:00:00Z",
+    "stats": {
+      "signals_ingested": 4,
+      "findings_created": 4,
+      "actions_proposed": 6,
+      "actions_autonomous": 5,
+      "decisions_raised": 1,
+      "policies_applied": 2,
+      "estimated_annual_savings": null
+    },
+    "error": null
+  }
+]

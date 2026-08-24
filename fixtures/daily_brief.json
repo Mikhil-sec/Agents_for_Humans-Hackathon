@@ -1,0 +1,14 @@
+{
+  "brief_id": "brf_744427d86cba429abfd58111",
+  "household_id": "hh_demo",
+  "run_id": "run_f7304a60f0534f5e85bd4834",
+  "generated_at": "2026-08-24T19:29:11.212439Z",
+  "headline": "Nothing needs you today",
+  "handled_silently": [],
+  "pending_decision_ids": [],
+  "savings_this_month": {
+    "amount_minor": 16420,
+    "currency": "GBP"
+  },
+  "autonomy_rate": 0.8571428571428571
+}
