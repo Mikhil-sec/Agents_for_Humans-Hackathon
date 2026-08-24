@@ -58,6 +58,7 @@ from .hooks import PolicyHook
 from .mock_reasoning import script_for
 from .models import build_model
 from .prompts import load_prompt
+from .scenarios import scripts_for
 from .schemas import (
     ActionPlan,
     BriefDraft,
@@ -183,10 +184,28 @@ class GraphRun:
         """Invoke or resume the graph, always with the same invocation state."""
         return self.graph(task, self.invocation_state)
 
+    def stream(self, task: Any) -> Any:
+        """The same call, as an async event stream.
 
-def _model_for(node_id: str, mode: str | None) -> Any:
-    """The node's model: Bedrock in live mode, its mock script in mock mode."""
-    script = script_for(node_id)
+        `Graph.stream_async` accepts exactly what `__call__` does, resume payload
+        included, so the AgentCore entrypoint (`main.py`) can stream a fresh run
+        and a resume through one code path. The final event is
+        `{"type": "multiagent_result", "result": GraphResult}` — the same object
+        `__call__` returns, so `harvest()` and `was_interrupted()` work unchanged
+        on it.
+        """
+        return self.graph.stream_async(task, self.invocation_state)
+
+
+def _model_for(node_id: str, mode: str | None, scenario: str | None = None) -> Any:
+    """The node's model: Bedrock in live mode, its mock script in mock mode.
+
+    `scenario` selects an alternative script set — the four weeks the autonomy
+    replay walks. None means the demo day in `mock_reasoning.py`, which is what
+    `make agent` runs and what a judge sees.
+    """
+    overrides = scripts_for(scenario)
+    script = (overrides or {}).get(node_id) or script_for(node_id)
     return build_model(mode, script=script.steps, final_text=script.final_text)
 
 
@@ -196,6 +215,7 @@ def _specialist(
     tools: list[Any],
     hook: PolicyHook,
     mode: str | None,
+    scenario: str | None = None,
 ) -> Agent:
     """One specialist agent: its own prompt, its own tools, the shared gate.
 
@@ -204,7 +224,7 @@ def _specialist(
     """
     return Agent(
         name=node_id,
-        model=_model_for(node_id, mode),
+        model=_model_for(node_id, mode, scenario),
         tools=tools,
         hooks=[hook],
         system_prompt=load_prompt(node_id),
@@ -222,6 +242,8 @@ def build_graph(
     session_dir: Path | str,
     policies: list[Policy] | None = None,
     mode: str | None = None,
+    session_manager: Any | None = None,
+    scenario: str | None = None,
 ) -> GraphRun:
     """Assemble the run graph.
 
@@ -234,6 +256,14 @@ def build_graph(
         session_dir: Where session state is written.
         policies: Learned rules in force. Loaded from the store when omitted.
         mode: `mock` or `live`. Defaults to `QH_PROVIDER_MODE`.
+        session_manager: Where suspended state is written. Defaults to a
+            `FileSessionManager` under `session_dir`; deployed runs pass the S3
+            one from `sessions.py`, because the container that suspends a run and
+            the container that resumes it days later share no disk.
+        scenario: A registered scenario key, selecting an alternative day's
+            signals and mock reasoning. None is the demo day. Used by the A6
+            autonomy replay; it changes *what happens*, never *what is allowed* —
+            the policy engine decides that from the store, every time.
     """
     session_dir = Path(session_dir)
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -250,7 +280,7 @@ def build_graph(
     # either is ever given an action tool, it must be added at the same time.
     ingest = Agent(
         name=NODE_INGEST,
-        model=_model_for(NODE_INGEST, mode),
+        model=_model_for(NODE_INGEST, mode, scenario),
         tools=INGEST_TOOLS,
         system_prompt=load_prompt(NODE_INGEST),
         callback_handler=None,
@@ -258,19 +288,20 @@ def build_graph(
 
     triage = Agent(
         name=NODE_TRIAGE,
-        model=_model_for(NODE_TRIAGE, mode),
+        model=_model_for(NODE_TRIAGE, mode, scenario),
         system_prompt=load_prompt(NODE_TRIAGE),
         structured_output_model=TriageResult,
         callback_handler=None,
     )
 
-    bill_analyst = _specialist(NODE_BILL_ANALYST, tools=BILL_TOOLS, hook=hook, mode=mode)
-    negotiator = _specialist(NODE_NEGOTIATOR, tools=NEGOTIATION_TOOLS, hook=hook, mode=mode)
-    scheduler = _specialist(NODE_SCHEDULER, tools=SCHEDULING_TOOLS, hook=hook, mode=mode)
+    specialist = {"hook": hook, "mode": mode, "scenario": scenario}
+    bill_analyst = _specialist(NODE_BILL_ANALYST, tools=BILL_TOOLS, **specialist)
+    negotiator = _specialist(NODE_NEGOTIATOR, tools=NEGOTIATION_TOOLS, **specialist)
+    scheduler = _specialist(NODE_SCHEDULER, tools=SCHEDULING_TOOLS, **specialist)
 
     brief = Agent(
         name=NODE_BRIEF,
-        model=_model_for(NODE_BRIEF, mode),
+        model=_model_for(NODE_BRIEF, mode, scenario),
         system_prompt=load_prompt(NODE_BRIEF),
         structured_output_model=BriefDraft,
         callback_handler=None,
@@ -300,14 +331,16 @@ def build_graph(
 
     builder.set_entry_point(NODE_INGEST)
     builder.set_max_node_executions(MAX_NODE_EXECUTIONS)
+    # Note 2: on the builder, never on a node Agent.
     builder.set_session_manager(
-        FileSessionManager(session_id=session_id, storage_dir=str(session_dir))
+        session_manager or FileSessionManager(session_id=session_id, storage_dir=str(session_dir))
     )
 
     invocation_state: dict[str, Any] = {
         "household_id": household_id,
         "run_id": run_id,
         "provider_mode": mode,
+        "scenario": scenario,
         "signals": [],
     }
 

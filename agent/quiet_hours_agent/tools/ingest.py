@@ -42,7 +42,11 @@ def load_signals(tool_context: ToolContext) -> str:
         logger.error("load_signals called with no household_id in invocation_state")
         return "No household is in scope for this run, so no signals were loaded."
 
-    signals = load_signals_for(household_id, mode=state.get("provider_mode"))
+    signals = load_signals_for(
+        household_id,
+        mode=state.get("provider_mode"),
+        scenario=state.get("scenario"),
+    )
     logger.info("load_signals household=%s count=%d", household_id, len(signals))
 
     # Stash the raw contract objects for the runner. The model gets the rendered

@@ -44,7 +44,7 @@ from quiet_hours_contracts import (
     RunTrigger,
 )
 
-from .graph import GraphRun, build_graph, harvest
+from .graph import GraphRun, RunHarvest, build_graph, harvest
 from .resume import build_resume_payload, persist_decisions, run_status_for, was_interrupted
 from .store import DEFAULT_STORE_DIR, JsonStore, build_store, new_id, utcnow
 
@@ -131,11 +131,18 @@ def _print_brief(brief) -> None:
         print(f"    - {line}")
 
 
-def _summarise(run: GraphRun) -> RunStats:
+def _summarise(run: GraphRun, outcome: RunHarvest) -> RunStats:
+    """Every figure counted from the audit trail, never written by the model.
+
+    `signals_ingested` comes from `invocation_state`, where the ungoverned
+    `load_signals` tool stashes the real `Signal` objects.
+    """
     verdicts = run.policy_hook.verdicts
     proposed = len(verdicts)
     autonomous = sum(1 for _, verdict in verdicts if verdict.allow_silently)
     return RunStats(
+        signals_ingested=len(run.invocation_state.get("signals") or []),
+        findings_created=len(outcome.findings),
         actions_proposed=proposed,
         actions_autonomous=autonomous,
         decisions_raised=proposed - autonomous,
@@ -159,6 +166,42 @@ def _save_run(store: JsonStore, run: GraphRun, *, session_id: str, result, stats
     )
 
 
+def _replay(household: str, *, weeks: int, answer: str) -> int:
+    """`--replay-weeks` — the autonomy curve.
+
+    Always starts from a clean store. The curve is the story of a household
+    teaching an agent from scratch, and rules left over from an earlier `make
+    agent` run would make week 1 look like week 3.
+    """
+    from .replay import WEEKS, render, replay
+
+    if weeks > len(WEEKS):
+        print(
+            f"Only {len(WEEKS)} weeks of data exist; replaying {len(WEEKS)}.",
+            file=sys.stderr,
+        )
+    weeks = max(1, min(weeks, len(WEEKS)))
+
+    for path in (store_root(), session_root()):
+        shutil.rmtree(path, ignore_errors=True)
+
+    store = build_store("mock")
+    assert isinstance(store, JsonStore)
+
+    print(f"Quiet Hours - replaying {weeks} week(s) for household={household}")
+    print(f"  Simulated answer to every decision: {answer}")
+
+    result = replay(
+        household,
+        store=store,
+        session_dir=session_root(),
+        weeks=WEEKS[:weeks],
+        answer=DecisionChoice(answer),
+    )
+    print(render(result, store=store, household_id=household))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="quiet-hours-agent")
     parser.add_argument("--household", default="hh_demo")
@@ -174,7 +217,17 @@ def main(argv: list[str] | None = None) -> int:
         "--replay-weeks",
         type=int,
         default=0,
-        help="Replay N weeks of seeded history to produce the autonomy curve (A6).",
+        help="Replay N weeks of household admin and print the autonomy curve (A6).",
+    )
+    parser.add_argument(
+        "--replay-answer",
+        choices=[choice.value for choice in DecisionChoice],
+        default=DecisionChoice.APPROVE_ALWAYS.value,
+        help=(
+            "What the simulated user says to every decision during a replay. "
+            "'approve' answers without teaching a rule, which flattens the curve "
+            "— that contrast is the proof the curve is real."
+        ),
     )
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -205,8 +258,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.replay_weeks:
-        print("--replay-weeks is A6 and needs Lane C's four-week fixtures. Not implemented yet.")
-        return 2
+        return _replay(args.household, weeks=args.replay_weeks, answer=args.replay_answer)
 
     store = build_store(mode)
     assert isinstance(store, JsonStore)
@@ -260,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
 
         _print_activity(store, household, run.run_id)
         _print_brief(outcome.brief)
-        _save_run(store, run, session_id=session_id, result=result, stats=_summarise(run))
+        _save_run(store, run, session_id=session_id, result=result, stats=_summarise(run, outcome))
 
         new_rules = store.list_policies(household)
         if len(new_rules) > len(policies):
@@ -295,7 +347,7 @@ def main(argv: list[str] | None = None) -> int:
     cards = persist_decisions(result, store, session_id=session_id) if was_interrupted(result) else []
     outcome = harvest(result, run, pending_decision_ids=[card.decision_id for card in cards])
 
-    stats = _summarise(run)
+    stats = _summarise(run, outcome)
     _save_run(store, run, session_id=session_id, result=result, stats=stats)
 
     _print_findings(outcome.findings)
