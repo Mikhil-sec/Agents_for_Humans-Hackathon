@@ -1,10 +1,10 @@
-from typing import Optional
-from fastapi import FastAPI, Response, HTTPException
+
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from config import CONTRACT_VERSION
-from fixtures_server import load_fixture, get_paged_fixture
+from fixtures_server import get_paged_fixture, load_fixture
 
 app = FastAPI(
     title="Quiet Hours API",
@@ -40,7 +40,7 @@ async def get_health():
     }
 
 @app.get("/api/decisions")
-async def list_decisions(status: Optional[str] = "pending"):
+async def list_decisions(status: str | None = "pending"):
     return get_paged_fixture("decisions.json", status_filter=status)
 
 @app.get("/api/decisions/{decision_id}")
@@ -48,7 +48,9 @@ async def get_decision(decision_id: str):
     decisions = load_fixture("decisions.json")
     if isinstance(decisions, list):
         for card in decisions:
-            if card.get("id") == decision_id:
+            # The contract field is `decision_id`, not `id` (contracts/python,
+            # DecisionCard). Matching on "id" 404s every valid card.
+            if card.get("decision_id") == decision_id:
                 return card
     raise HTTPException(status_code=404, detail="Decision card not found")
 
@@ -73,9 +75,10 @@ async def get_run(run_id: str):
     runs = load_fixture("runs.json")
     if isinstance(runs, list):
         for run in runs:
-            if run.get("id") == run_id:
+            # Contract field is `run_id`, not `id` (contracts/python, Run).
+            if run.get("run_id") == run_id:
                 return run
-    return {"id": run_id, "status": "completed"}
+    raise HTTPException(status_code=404, detail="Run not found")
 
 @app.post("/api/runs")
 async def trigger_run():
@@ -86,7 +89,7 @@ async def trigger_run():
     }
 
 @app.get("/api/activity")
-async def list_activity(autonomous: Optional[bool] = None):
+async def list_activity(autonomous: bool | None = None):
     return get_paged_fixture("activity.json")
 
 @app.get("/api/policies")

@@ -1,9 +1,12 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any
+
 from fastapi import HTTPException
+
 from config import FIXTURES_DIR
 
-def load_fixture(filename: str) -> Dict[str, Any]:
+
+def load_fixture(filename: str) -> dict[str, Any]:
     file_path = FIXTURES_DIR / filename
     if not file_path.exists():
         raise HTTPException(
@@ -14,7 +17,7 @@ def load_fixture(filename: str) -> Dict[str, Any]:
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def get_paged_fixture(filename: str, status_filter: Optional[str] = None) -> Dict[str, Any]:
+def get_paged_fixture(filename: str, status_filter: str | None = None) -> dict[str, Any]:
     data = load_fixture(filename)
     
     if status_filter and isinstance(data, list):
