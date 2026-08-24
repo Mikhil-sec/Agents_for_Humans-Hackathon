@@ -1,25 +1,32 @@
 """Where the day's raw signals come from.
 
-**This is a temporary in-lane stand-in.** The real source is Lane C's provider
-bundle (`integrations.get_providers()`), which still raises `NotImplementedError`
-as of 2026-08-23 — that is A4, and it is the reason this file exists rather than
-the graph importing `/integrations` directly.
+`load_signals_for` reads Lane C's provider bundle through `providers.py`, and
+falls back to the in-lane stand-in below **only in mock mode**. As of 2026-08-24
+`get_providers()` still raises `NotImplementedError`, so mock mode is on the
+stand-in — but nothing here needs to change when Lane C lands, which is what
+finishes A4 on this side.
 
-Keeping the seam here rather than inside `graph.py` means A4 is a one-function
-swap: `load_signals` starts calling providers and nothing else in the lane moves.
-The graph already treats signals as opaque contract objects.
+Live mode never falls back. A live run quietly reasoning over demo data would
+produce real decision cards about merchants the household has never heard of.
 
-The fixture below is Lane A's own, deliberately small, and lives here rather than
-in `/fixtures` because that directory belongs to Lane C. When Yorvan's four-week
-fixtures land, this is deleted, not merged with them.
+The fixtures below are Lane A's own and live here rather than in `/fixtures`,
+which belongs to Lane C. There are two: one day (`_demo_signals`, what a single
+run sees) and four weeks (`replay.py`, what the autonomy curve is measured over).
+When Yorvan's fixtures land, these are deleted, not merged with them.
 """
 
 from __future__ import annotations
 
-import os
+import logging
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from quiet_hours_contracts import Money, Signal, SignalKind
+
+from .providers import get_providers, resolve_mode
+from .scenarios import signals_for
+
+logger = logging.getLogger(__name__)
 
 
 def _demo_signals(household_id: str, now: datetime) -> list[Signal]:
@@ -69,8 +76,7 @@ def _demo_signals(household_id: str, now: datetime) -> list[Signal]:
             source="mock_gmail",
             subject="Your Streamly free trial ends in 3 days",
             body=(
-                "After 3 days you will be charged GBP 12.99 a month unless you "
-                "cancel before then."
+                "After 3 days you will be charged GBP 12.99 a month unless you cancel before then."
             ),
             merchant="Streamly",
             amount=Money(amount_minor=1299, currency="GBP"),
@@ -92,25 +98,82 @@ def _demo_signals(household_id: str, now: datetime) -> list[Signal]:
     ]
 
 
-def load_signals_for(household_id: str, *, mode: str | None = None) -> list[Signal]:
+LOOKBACK = timedelta(days=1)
+"""How far back a daily run reads. One day, because the run is daily and a wider
+window re-surfaces signals earlier runs already acted on."""
+
+CALENDAR_HORIZON = timedelta(days=14)
+"""How far *forward* the calendar is read. An appointment needing confirmation is
+only actionable while there is still time to confirm it."""
+
+
+def load_signals_for(
+    household_id: str,
+    *,
+    mode: str | None = None,
+    now: datetime | None = None,
+    scenario: str | None = None,
+) -> list[Signal]:
     """The day's signals for one household.
+
+    Reads Lane C's providers when they exist, and Lane A's stand-in when they do
+    not — but **only in mock mode**. In live mode a missing provider is a hard
+    failure, because a live run quietly reasoning over demo data would produce
+    real decision cards about merchants the household has never heard of.
 
     Args:
         household_id: Whose signals to load.
         mode: `mock` or `live`. Defaults to `QH_PROVIDER_MODE`, then `mock`.
+        now: The moment the run considers "now". The replay passes a past date so
+            each simulated week reads its own window.
+        scenario: A registered scenario key. Checked *before* the providers,
+            because the A6 replay is simulating four specific weeks — asking a
+            live provider for them would be asking for data that does not exist.
     """
-    resolved = (mode or os.environ.get("QH_PROVIDER_MODE") or "mock").strip().casefold()
+    resolved = resolve_mode(mode)
+    now = now or datetime.now(UTC)
 
-    if resolved == "live":
-        # A4. Deliberately a hard failure rather than a silent fall back to the
-        # fixture: a live run quietly reasoning over demo data would produce real
-        # decision cards about merchants the household has never heard of.
-        raise NotImplementedError(
-            "Live signal ingestion needs Lane C's get_providers() (A4). "
-            "Run with QH_PROVIDER_MODE=mock until it lands."
-        )
+    scripted = signals_for(scenario, household_id, now)
+    if scripted is not None:
+        return scripted
 
-    return _demo_signals(household_id, datetime.now(UTC))
+    bundle = get_providers(resolved)  # raises in live mode if Lane C is absent
+    if bundle is not None:
+        return _from_providers(bundle, household_id, now)
+
+    return _demo_signals(household_id, now)
+
+
+def _from_providers(bundle: Any, household_id: str, now: datetime) -> list[Signal]:
+    """Everything the three read-only providers have, merged and ordered.
+
+    Each provider is read independently and a failure in one does not lose the
+    others: an unreachable bank should not stop the agent noticing that a dental
+    appointment needs confirming. What it must never do is silently look like a
+    quiet day — hence the warning, and hence `sources_failed` being visible to
+    the caller through the log rather than swallowed.
+    """
+    since = now - LOOKBACK
+    signals: list[Signal] = []
+
+    for label, read in (
+        ("email", lambda: bundle.email.fetch_since(household_id, since)),
+        ("transactions", lambda: bundle.transactions.fetch_since(household_id, since)),
+        (
+            "calendar",
+            lambda: bundle.calendar.fetch_between(household_id, now, now + CALENDAR_HORIZON),
+        ),
+    ):
+        try:
+            signals.extend(read() or [])
+        except Exception:
+            logger.warning("could not read %s signals for %s", label, household_id, exc_info=True)
+
+    # Oldest first, matching the order every provider promises individually, so
+    # the rendered context reads chronologically whatever order they came back in.
+    signals.sort(key=lambda signal: signal.occurred_at)
+    logger.info("loaded %d signal(s) from Lane C's providers", len(signals))
+    return signals
 
 
 def render_signals(signals: list[Signal]) -> str:

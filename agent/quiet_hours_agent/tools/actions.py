@@ -15,11 +15,25 @@ Two kinds deliberately have **no tool at all**:
 Adding either back is a safety decision, not a feature decision, and belongs in
 `docs/status/DECISIONS.md` first.
 
-**None of these reach the outside world yet.** A4 replaces the bodies with calls
-into Lane C's provider bundle; the signatures are already shaped for it. As of
-2026-08-23 `get_providers()` still raises `NotImplementedError`. The gate in
-front of them is real regardless of what the body does — which is exactly why it
-was built first.
+**Six of these reach Lane C's providers when the providers exist** (A4). The
+other five are internal by design — `file_record`, `tag_merchant` and
+`update_budget_ledger` have no external effect at all, which is why they are
+`SILENT`; `reschedule_appointment` and `dispute_charge` have no provider method
+to call yet (see `PROGRESS_A.md` for the two-method ask to Lane C).
+
+Every tool that can reach a provider follows the same shape:
+
+    bundle = get_providers(...)          # None in mock mode until Lane C lands
+    if bundle is None: return <in-lane result>
+    <call the provider, return what it says>
+
+so mock mode keeps working with zero credentials and nothing here changes when
+Lane C's implementation arrives. The gate in front of these is real regardless of
+what the body does — which is exactly why it was built first.
+
+`household_id` comes from `invocation_state`, never from a tool argument: it is a
+tenancy boundary, and a model that can pass one can be talked into passing
+someone else's. That is why the provider-backed tools take `tool_context`.
 
 Every tool takes an optional `rationale`. It is what the user reads on the
 decision card when the gate stops the call, so it is worth the tokens: without it
@@ -29,10 +43,54 @@ a card can only say that the agent proposed something, not why.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
+from quiet_hours_contracts import Money
 from strands import tool
+from strands.types.tools import ToolContext
+
+from ..providers import get_providers
 
 logger = logging.getLogger(__name__)
+
+REMINDER_MINUTES = 15
+"""How long a reminder occupies on the calendar. `CalendarProvider` has no
+reminder concept, so a reminder is a short event — the closest honest mapping
+onto the interface Lane C actually published."""
+
+
+def _bundle_for(tool_context: ToolContext) -> tuple[Any | None, str | None]:
+    """`(providers, household_id)`, either of which may be None.
+
+    A tool with no `household_id` must not act. It is a tenancy boundary, and a
+    run that cannot say whose data it is holding has no business touching
+    anyone's — the same rule `tools/ingest.py` applies to reading.
+    """
+    state = tool_context.invocation_state
+    household_id = state.get("household_id")
+    if not household_id:
+        logger.error("governed tool called with no household_id in invocation_state")
+        return None, None
+
+    return get_providers(state.get("provider_mode")), household_id
+
+
+def _parse_when(value: str, *, default: datetime | None = None) -> datetime:
+    """An ISO-8601 string from the model, as an aware datetime.
+
+    Defensive because the value comes from a model: a malformed date must degrade
+    to something sensible rather than crash a tool that has already passed the
+    policy gate and may have been explicitly approved by the user.
+    """
+    try:
+        # Python 3.11+ parses a trailing "Z" natively; the project floor is 3.11.
+        parsed = datetime.fromisoformat(value)
+    except (ValueError, AttributeError):
+        logger.warning("could not parse datetime %r; using default", value)
+        return default or datetime.now(UTC)
+
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 # -- SILENT: reversible, no external effect ---------------------------------
@@ -80,8 +138,10 @@ def update_budget_ledger(merchant: str, amount_minor: int, rationale: str = "") 
 # -- NOTIFY: external, harmless, reversible ---------------------------------
 
 
-@tool
-def set_reminder(subject: str, remind_at: str, rationale: str = "") -> str:
+@tool(context=True)
+def set_reminder(
+    tool_context: ToolContext, subject: str, remind_at: str, rationale: str = ""
+) -> str:
     """Set a reminder so something is not forgotten.
 
     Args:
@@ -90,11 +150,26 @@ def set_reminder(subject: str, remind_at: str, rationale: str = "") -> str:
         rationale: Why this date, written for the user.
     """
     logger.info("set_reminder subject=%s at=%s", subject, remind_at)
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return f"Reminder set for {remind_at}: {subject}"
+
+    # `CalendarProvider` has no reminder concept, so a reminder is a short event.
+    starts = _parse_when(remind_at)
+    bundle.calendar.create_event(
+        household_id,
+        f"Reminder: {subject}",
+        starts,
+        starts + timedelta(minutes=REMINDER_MINUTES),
+        rationale or None,
+    )
     return f"Reminder set for {remind_at}: {subject}"
 
 
-@tool
-def add_calendar_event(title: str, starts_at: str, rationale: str = "") -> str:
+@tool(context=True)
+def add_calendar_event(
+    tool_context: ToolContext, title: str, starts_at: str, rationale: str = ""
+) -> str:
     """Add an event to the household calendar.
 
     Args:
@@ -103,12 +178,25 @@ def add_calendar_event(title: str, starts_at: str, rationale: str = "") -> str:
         rationale: Why it belongs on the calendar, written for the user.
     """
     logger.info("add_calendar_event title=%s at=%s", title, starts_at)
-    return f"Added '{title}' to the calendar for {starts_at}."
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return f"Added '{title}' to the calendar for {starts_at}."
+
+    starts = _parse_when(starts_at)
+    event_id = bundle.calendar.create_event(
+        household_id, title, starts, starts + timedelta(hours=1), rationale or None
+    )
+    return f"Added '{title}' to the calendar for {starts_at} (event {event_id})."
 
 
-@tool
-def draft_email(recipient: str, subject: str, body: str, rationale: str = "") -> str:
+@tool(context=True)
+def draft_email(
+    tool_context: ToolContext, recipient: str, subject: str, body: str, rationale: str = ""
+) -> str:
     """Write an email draft and leave it for the user. **Never sends.**
+
+    `EmailProvider` has `create_draft` and deliberately has no `send`. The absence
+    of the method is the guarantee — this tool could not send if it wanted to.
 
     Args:
         recipient: Who it is addressed to.
@@ -117,8 +205,16 @@ def draft_email(recipient: str, subject: str, body: str, rationale: str = "") ->
         rationale: Why this needs sending, written for the user.
     """
     logger.info("draft_email recipient=%s subject=%s", recipient, subject)
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return (
+            f"Drafted an email to {recipient} — '{subject}' ({len(body)} characters). "
+            "Saved as a draft; nothing was sent."
+        )
+
+    draft_id = bundle.email.create_draft(household_id, recipient, subject, body)
     return (
-        f"Drafted an email to {recipient} — '{subject}' ({len(body)} characters). "
+        f"Drafted an email to {recipient} — '{subject}' (draft {draft_id}). "
         "Saved as a draft; nothing was sent."
     )
 
@@ -126,8 +222,14 @@ def draft_email(recipient: str, subject: str, body: str, rationale: str = "") ->
 # -- CONFIRM: money, messages, or a change to a service ---------------------
 
 
-@tool
-def pay_bill(merchant: str, amount_minor: int, due_date: str = "", rationale: str = "") -> str:
+@tool(context=True)
+def pay_bill(
+    tool_context: ToolContext,
+    merchant: str,
+    amount_minor: int,
+    due_date: str = "",
+    rationale: str = "",
+) -> str:
     """Schedule a bill payment. Creates a **payment request**, never a transfer.
 
     Args:
@@ -137,16 +239,38 @@ def pay_bill(merchant: str, amount_minor: int, due_date: str = "", rationale: st
         rationale: Why this should be paid, written for the user.
     """
     logger.info("pay_bill merchant=%s minor=%s", merchant, amount_minor)
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return (
+            f"Scheduled a payment request of {amount_minor} minor units to {merchant}"
+            + (f", due {due_date}" if due_date else "")
+            + ". No money has moved."
+        )
+
+    # `schedule_payment` creates a *request* a human confirms out of band. There
+    # is no method on `PaymentProvider` that moves money unattended, and none may
+    # be added — see `integrations/base.py`.
+    payment_id = bundle.payments.schedule_payment(
+        household_id,
+        merchant,
+        Money(amount_minor=amount_minor, currency="GBP"),
+        _parse_when(due_date, default=datetime.now(UTC) + timedelta(days=7)),
+        rationale or None,
+    )
     return (
         f"Scheduled a payment request of {amount_minor} minor units to {merchant}"
         + (f", due {due_date}" if due_date else "")
-        + ". No money has moved."
+        + f" (request {payment_id}). No money has moved."
     )
 
 
-@tool
+@tool(context=True)
 def cancel_subscription(
-    merchant: str, monthly_amount_minor: int, reason: str = "", rationale: str = ""
+    tool_context: ToolContext,
+    merchant: str,
+    monthly_amount_minor: int,
+    reason: str = "",
+    rationale: str = "",
 ) -> str:
     """Cancel a recurring subscription.
 
@@ -157,16 +281,24 @@ def cancel_subscription(
         rationale: Why the agent believes this, written for the user.
     """
     logger.info("cancel_subscription merchant=%s minor=%s", merchant, monthly_amount_minor)
-    # A4: providers.subscriptions.cancel(household_id, merchant, reason)
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return (
+            f"Cancellation recorded for {merchant} "
+            f"(was {monthly_amount_minor} minor units/month)."
+            + (f" Reason: {reason}" if reason else "")
+        )
+
+    receipt = bundle.subscriptions.cancel(household_id, merchant, reason or None)
     return (
-        f"Cancellation recorded for {merchant} "
-        f"(was {monthly_amount_minor} minor units/month)."
-        + (f" Reason: {reason}" if reason else "")
+        f"Cancelled {merchant} (was {monthly_amount_minor} minor units/month). "
+        f"Receipt {receipt}." + (f" Reason: {reason}" if reason else "")
     )
 
 
-@tool
+@tool(context=True)
 def downgrade_plan(
+    tool_context: ToolContext,
     merchant: str,
     to_plan: str,
     monthly_amount_minor: int = 0,
@@ -183,12 +315,18 @@ def downgrade_plan(
         rationale: Why this tier suits them better, written for the user.
     """
     logger.info("downgrade_plan merchant=%s to=%s", merchant, to_plan)
-    return (
-        f"Plan change recorded for {merchant}"
+    described = (
+        f"{merchant}"
         + (f": {from_plan} -> {to_plan}" if from_plan else f" to {to_plan}")
         + (f" ({monthly_amount_minor} minor units/month)" if monthly_amount_minor else "")
-        + "."
     )
+
+    bundle, household_id = _bundle_for(tool_context)
+    if bundle is None:
+        return f"Plan change recorded for {described}."
+
+    receipt = bundle.subscriptions.downgrade(household_id, merchant, to_plan)
+    return f"Plan changed for {described}. Receipt {receipt}."
 
 
 @tool
@@ -215,9 +353,7 @@ def reschedule_appointment(
 
 
 @tool
-def dispute_charge(
-    merchant: str, amount_minor: int, reason: str, rationale: str = ""
-) -> str:
+def dispute_charge(merchant: str, amount_minor: int, reason: str, rationale: str = "") -> str:
     """Formally dispute a charge with the provider.
 
     Irreversible and consequential, so it always asks the user — no learned
@@ -230,10 +366,7 @@ def dispute_charge(
         rationale: Why the agent believes this is wrong, written for the user.
     """
     logger.info("dispute_charge merchant=%s minor=%s", merchant, amount_minor)
-    return (
-        f"Dispute prepared against {merchant} for {amount_minor} minor units. "
-        f"Grounds: {reason}"
-    )
+    return f"Dispute prepared against {merchant} for {amount_minor} minor units. Grounds: {reason}"
 
 
 BILL_TOOLS = [file_record, tag_merchant, update_budget_ledger, pay_bill, dispute_charge]
