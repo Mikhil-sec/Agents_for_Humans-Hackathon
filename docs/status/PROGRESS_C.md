@@ -148,3 +148,91 @@ code. Nothing in `/integrations`, `/fixtures` or `/infra` was modified.
   doing infra work; it is a Lane C file.
 - **Do not commit credentials.** CI greps for AKIA-prefixed strings and private key headers.
   AWS keys belong in `~/.aws/credentials` via `aws configure`, never in the repo or `.env`.
+
+---
+
+## 2026-08-26 — session with Claude Code, `c/mock-providers`
+
+**Done**
+
+- Implemented `get_providers(ProviderMode.MOCK)` end to end: `registry.py`, and five mock
+  provider classes under `integrations/quiet_hours_integrations/mock/` (`email.py`,
+  `transactions.py`, `calendar.py`, `payments.py`, `subscriptions.py`) plus a shared loader,
+  `mock/_fixtures.py`. `base.py` was not touched — `update_event` and `dispute_charge` both
+  still need a `DECISIONS.md` entry first, per the last session's note.
+- Mock providers read the five raw fixture files named in `fixtures/README.md`
+  (`household.json`, `inbox/*.json`, `transactions.json`, `calendar.json`,
+  `merchant_history.json`). None of the seeder's actual fixture data was written — only
+  `household.json` exists today (a byproduct of Lane A's `export_fixtures` fallback). The
+  four other raw files still do not exist. This is deliberate: Mikhil has not signed off on
+  the fixtures-shape question yet, so authoring real fixture data was explicitly out of
+  scope this session. The exact JSON shape each loader expects is documented in the
+  docstrings of `mock/_fixtures.py` and in the fixture builders in `integrations/tests/conftest.py`
+  — worth folding into `fixtures/README.md` once the shape question is settled, so the seeder
+  (whoever ends up writing it) has one place to read it from.
+- 27 tests in `integrations/tests/` (`test_mock_providers.py`, `test_registry.py`), covering:
+  each provider satisfies `base.py`'s Protocols via `isinstance`; each of the five raw files
+  fails with a clear `FixturesNotFoundError` (not a bare traceback) when missing; correct
+  reads for email (`fetch_since`, `create_draft` never sends, `get_thread` by `thread_id`),
+  transactions (`fetch_since`, `merchant_history` filtered by merchant and recency),
+  calendar (`fetch_between`, `find_free_slots` around busy windows, `create_event` mutating
+  only in-memory state, never `calendar.json`), payments (schedule/cancel, in-memory ledger,
+  no fixture file), subscriptions (cancel/downgrade, in-memory ledger, no fixture file); and
+  an unknown `household_id` raising `UnknownHouseholdError` rather than returning nothing.
+  All pass: `cd integrations && pytest -q` → `27 passed`.
+- **Found and fixed a real regression before it shipped, not after.** My first pass had each
+  provider load its own fixture file lazily, on first read — clean per-call errors, but it
+  meant `get_providers(MOCK)` itself *succeeded* the moment any fixtures existed at all, even
+  a half-empty directory. I checked this against Lane A's `providers.py`, which only falls
+  back to its in-lane `_demo_signals` while `get_providers(MOCK)` *raises* — the exact seam
+  flagged in the previous entry below ("Mock providers and fixtures must land in the same
+  branch"). With lazy-only loading, `_build()` got a real bundle back, so Lane A's fallback
+  silently stopped firing, and `load_signals_for` returned an *empty* day instead of the rich
+  4-signal demo stand-in — confirmed by running `load_signals_for` directly. Fixed by adding
+  `require_fixture_set()` in `mock/_fixtures.py`, called once by `build_mock_providers` before
+  any provider is handed back: it eagerly checks all five raw files/dirs exist and raises
+  immediately if not. Individual provider classes still read lazily per-call (so unit tests
+  can exercise one provider without seeding all five files), but `get_providers(MOCK)` now
+  fails at build time on a partial fixture set, exactly like it does today. Re-verified after
+  the fix: `providers_module.get_providers('mock')` returns `None`, and
+  `load_signals_for(...)` returns the 4-signal demo stand-in again — the pre-existing
+  behaviour is unchanged until real fixtures land.
+- Ran the full cross-lane check, not just my own tests: Lane A's suite (`cd agent && pytest -q`)
+  — **174 passed**, unchanged, including `test_a4_providers.py`. `ruff check` clean on
+  everything touched. `make fixtures`'s first branch (`quiet_hours_integrations.mock.seed`)
+  still declines with its existing message, so the Makefile still falls through to Lane A's
+  exporter — `make demo`'s fixtures step is unaffected.
+- Environment note: no venv existed in this repo yet. Created one at `<repo root>/.venv`
+  (already gitignored) and installed `contracts/python`, `integrations[dev]`, `agent[dev]`
+  editable into it to run both lanes' test suites. System Python is 3.14; both packages
+  declare `>=3.11` and installed and ran cleanly.
+
+**Not done / explicitly out of scope this session**
+
+- No fixture data was written (`inbox/`, `transactions.json`, `calendar.json`,
+  `merchant_history.json` still do not exist). That is `c/fixtures-full`, gated on Mikhil's
+  fixtures-shape decision, per the previous entry.
+- `api`/`web` were not touched or verified against these providers (out of lane; Lane B
+  develops against `fixtures_server.py`, not these providers, per `AI_AGENT_PROTOCOL.md` §6).
+
+**Blocked / needs a human**
+
+- Fixtures-shape question is still open with Mikhil (see previous entry) — unchanged by this
+  session, just re-confirming it still gates `c/fixtures-full`.
+
+**Notes for the next session**
+
+- The five raw fixture shapes this session's loaders expect are, in short: `household.json`
+  is exactly the `Household` contract model; `inbox/` is one file per email with
+  `signal_id`, `occurred_at`, `subject`, `body`, optional `merchant`/`amount`
+  (`{amount_minor, currency}`)/`source`/`thread_id`; `transactions.json` is a flat list of the
+  same per-record shape; `calendar.json` is a flat list with an optional `end_at` (defaults to
+  a 30-minute slot); `merchant_history.json` is a dict keyed by merchant name to a list of the
+  same per-record shape. Full examples: `integrations/tests/conftest.py`. Whoever writes
+  `c/fixtures-full` should treat that file as the spec, not just the test data.
+  `merchant_history.json`, `payments`, and `subscriptions` have no fixture file — schedule/
+  cancel/downgrade are pure in-memory ledgers per provider instance, since nothing needs to
+  seed them; the receipt only exists because a run acted this session.
+  Mock providers now validate `household_id` against `household.json` and raise
+  `UnknownHouseholdError` on a mismatch — deliberate, since the fixtures cover exactly one
+  household and a mismatch is almost certainly a caller bug, not a real lookup miss.
