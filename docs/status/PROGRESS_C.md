@@ -236,3 +236,98 @@ code. Nothing in `/integrations`, `/fixtures` or `/infra` was modified.
   Mock providers now validate `household_id` against `household.json` and raise
   `UnknownHouseholdError` on a mismatch — deliberate, since the fixtures cover exactly one
   household and a mismatch is almost certainly a caller bug, not a real lookup miss.
+
+---
+
+## 2026-08-26 — session with Claude Code, `merchant_history` reference date + design record
+
+**Done**
+
+- **Fixed `MockTransactionProvider.merchant_history`'s recency cutoff.** It computed
+  `datetime.now(UTC) - timedelta(days=30 * months)`, anchored to wall-clock now rather than
+  the fixture world's reference date — same failure shape as the fallback regression fixed
+  earlier this session: no error, just thinner evidence behind a card as real time passes
+  between when the fixtures are written and when they're read.
+  - Added `DEFAULT_AS_OF = datetime(2026, 8, 26, tzinfo=UTC)` to `mock/_fixtures.py` — one
+    constant, documented as the value the seeder's future `--as-of` flag will also default to,
+    so a reader and a fresh re-seed agree.
+  - `MockTransactionProvider.__init__` now takes `as_of: datetime = DEFAULT_AS_OF` and uses
+    `self._as_of` (not `now()`) as the cutoff anchor. Threaded through
+    `build_mock_providers(fixtures_dir, as_of=DEFAULT_AS_OF)` and
+    `get_providers(mode, *, fixtures_dir=None, as_of=DEFAULT_AS_OF)` so it's overridable
+    end-to-end without changing any existing caller — Lane A's `providers.py` calls
+    `get_providers(mode)` with no kwargs and gets the default, unchanged.
+  - **Design choice: constructor argument, not `household.json`.** `Household` is a frozen
+    contract model with no reference-date field, and its `created_at` means something
+    different (when the household was onboarded, not "the fixture world's now") — bending it
+    to double as the as-of would be a contract change for a concern that's really internal to
+    fixture-authoring, not something Lanes A or B need. A constructor default costs nothing
+    outside `/integrations` and matches the existing pattern (`fixtures_dir` is already a
+    construction-time setting that isn't itself fixture data).
+  - Added `test_merchant_history_cutoff_is_pinned_to_a_fixed_as_of_not_wall_clock_now` in
+    `integrations/tests/test_mock_providers.py`: with `as_of=2026-08-26` and the 12-month
+    default, places one entry at `2025-08-30T23:59:59Z` (excluded) and one at
+    `2025-08-31T00:00:00Z` (included) and asserts exactly the second comes back — pins the
+    cutoff date itself, not just "some filtering happens."
+  - Verified: `cd integrations && pytest -q` → **28 passed**. `ruff check` clean (one
+    auto-fixed import-sort nit, no logic change). Re-ran Lane A's suite after touching
+    `registry.py`/`mock/__init__.py` — **174 passed**, unchanged.
+
+- **Moved the fixture design record from `fixtures/design.md` to
+  `docs/lanes/LANE_C_FIXTURE_DESIGN.md`**, with Yorvan's go-ahead. `fixtures/` is documented
+  and treated throughout the repo as data (what the seeder writes, what Lanes A/B read); this
+  is a dated design memo with rationale and a test list, which fits the existing
+  `docs/lanes/LANE_<X>_<TOPIC>.md` pattern better. It was untracked, so a plain filesystem
+  move, not `git mv`. Added a one-line pointer from `fixtures/README.md` to it, just above
+  "The narrative these must produce", so a reader of the data directory finds the "why"
+  without the design memo itself living among the JSON. The decisions themselves, so they
+  survive regardless of where the file lives:
+
+  - **Reference date:** the seeder will take `--as-of`, defaulting to the same
+    `2026-08-26` constant now in `mock/_fixtures.py`. Reproducible by default; bump the
+    constant to refresh before submission.
+  - **Four-week calendar:** household created Mon 20 Jul 2026 (already in `household.json`)
+    — twelve months of bank history imports on connection, giving the priors a legitimate
+    origin. Weeks are Monday-start aggregation buckets only (the agent runs daily): Week 1
+    Mon 27 Jul–Sun 2 Aug, Week 2 Mon 3–Sun 9 Aug, Week 3 Mon 10–Sun 16 Aug, Week 4 Mon 17–Sun
+    23 Aug. As-of is Wed 26 Aug — a deliberate three-day gap after week 4 closes, so week 4's
+    decision card has been sitting for a few days rather than looking freshly raised.
+  - **FitLife resolution** (supersedes the lane brief's "eleven charges since March", which is
+    internally inconsistent — eleven monthly charges implies a September 2025 last visit, not
+    March): last visit **14 March 2025**; charges April 2025–August 2026 inclusive total **17
+    records, £646**. Inside the provider's 12-month window (cutoff 2025-08-31, matching the
+    pinned test above): **12 records, £456** — first 2025-09-03, last 2026-08-03. The £456
+    figure is also the annual renewal amount due 1 September 2026 — deliberate coincidence, so
+    the card can say the same number twice with two meanings ("renews at £456 for the year" /
+    "you've paid £456 over the last twelve months") with no arithmetic asked of the viewer. The
+    five pre-window records stay in the file (true, reward anyone who widens the window) but
+    nothing on the card depends on them.
+  - **Exact-string-match invariant:** `MockTransactionProvider.merchant_history` looks up
+    `history.get(merchant, [])` — a plain dict lookup on an exact string, no normalisation. If
+    `transactions.json` says `"British Gas"` and `merchant_history.json` says
+    `"British Gas Ltd"`, the lookup silently returns `[]`: BillAnalyst gets no prior, the
+    finding doesn't fire, and nothing errors. The seeder must derive both files from one
+    merchant table rather than typing the name twice, and should carry a test asserting every
+    distinct merchant in `transactions.json` has a matching key in `merchant_history.json`.
+
+**Not done**
+
+- No fixture data written — still explicitly out of scope pending Mikhil's fixtures-shape
+  decision, unchanged from the previous entry.
+
+**Blocked / needs a human**
+
+- Fixtures-shape question with Mikhil is still open, unchanged.
+
+**Notes for the next session**
+
+- **`docs/lanes/` write-scope question, resolved.** `docs/lanes/LANE_C_FIXTURE_DESIGN.md` was
+  created this session, but `docs/lanes/` is not in Lane C's write scope — the protocol grants
+  one specific filename, `docs/lanes/LANE_C_INTEGRATIONS.md`, not the directory, and root
+  `AGENTS.md` lists `/docs` as shared with per-file CODEOWNERS. The file was placed there on
+  Yorvan's instruction as lane owner, before either of us had checked the literal grant, so it
+  stands by his say-so rather than by protocol. Future sessions should treat `docs/lanes/` as
+  not-ours-by-default and ask before adding anything else there.
+  Adding `docs/lanes/` to Lane C's scope would be a one-line change to the protocol table or
+  CODEOWNERS — but `docs/AI_AGENT_PROTOCOL.md` isn't ours either, so it's a request to Mikhil,
+  batched with the outstanding fixtures-shape question.

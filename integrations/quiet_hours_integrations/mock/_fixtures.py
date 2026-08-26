@@ -24,6 +24,19 @@ from typing import Any
 
 from quiet_hours_contracts import Household, Money, Signal, SignalKind
 
+DEFAULT_AS_OF = datetime(2026, 8, 26, tzinfo=UTC)
+"""The fixture world's reference "now".
+
+The seeder's `--as-of` flag will default to this same constant. Anything that
+reasons about recency against the fixtures — today, `merchant_history`'s
+"last twelve months" window — must anchor to it rather than to wall-clock
+`datetime.now()`. The fixture set is written once and read for weeks; a cutoff
+anchored to real time silently shortens as time passes, thinning the evidence
+behind a card with no error to show for it. Anchoring to a fixed point keeps a
+reader's answer identical to what a fresh `--as-of`-less re-seed would produce,
+on the day it's read or a year later.
+"""
+
 
 class FixturesNotFoundError(FileNotFoundError):
     """A raw fixture file or directory the mock providers need is not there yet."""

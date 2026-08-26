@@ -32,7 +32,7 @@ from quiet_hours_integrations.mock.payments import MockPaymentProvider
 from quiet_hours_integrations.mock.subscriptions import MockSubscriptionProvider
 from quiet_hours_integrations.mock.transactions import MockTransactionProvider
 
-from .conftest import HOUSEHOLD_ID
+from .conftest import HOUSEHOLD_ID, write_fixtures
 
 EPOCH = datetime(2020, 1, 1, tzinfo=UTC)
 
@@ -208,6 +208,37 @@ def test_merchant_history_filters_by_merchant_and_recency(seeded_fixtures_dir: P
 
     unknown = provider.merchant_history(HOUSEHOLD_ID, "Nonexistent Merchant")
     assert unknown == []
+
+
+def test_merchant_history_cutoff_is_pinned_to_a_fixed_as_of_not_wall_clock_now(tmp_path: Path):
+    """Regression guard: the cutoff used to be `datetime.now(UTC) - 30*months days`,
+    which silently thins the evidence behind a card as real time passes rather than
+    erroring. It must anchor to a fixed `as_of` instead. With `as_of` 2026-08-26 and
+    the 12-month default, the cutoff is 2025-08-31 — this pins that exact date by
+    placing one entry a second before it and one exactly on it.
+    """
+    fixtures_dir = write_fixtures(tmp_path / "fixtures")
+    history = json.loads((fixtures_dir / "merchant_history.json").read_text(encoding="utf-8"))
+    history["FitLife"] = [
+        {
+            "signal_id": "hist_one_second_before_cutoff",
+            "occurred_at": "2025-08-30T23:59:59Z",
+            "amount": {"amount_minor": 3800, "currency": "GBP"},
+        },
+        {
+            "signal_id": "hist_exactly_on_cutoff",
+            "occurred_at": "2025-08-31T00:00:00Z",
+            "amount": {"amount_minor": 3800, "currency": "GBP"},
+        },
+    ]
+    (fixtures_dir / "merchant_history.json").write_text(json.dumps(history), encoding="utf-8")
+
+    as_of = datetime(2026, 8, 26, tzinfo=UTC)
+    provider = MockTransactionProvider(fixtures_dir, as_of=as_of)
+
+    signals = provider.merchant_history(HOUSEHOLD_ID, "FitLife", months=12)
+
+    assert [s.signal_id for s in signals] == ["hist_exactly_on_cutoff"]
 
 
 # --------------------------------------------------------------------------

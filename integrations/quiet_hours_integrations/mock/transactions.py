@@ -8,13 +8,13 @@ covering twelve months. Both are documented in `fixtures/README.md`.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from quiet_hours_contracts import Signal, SignalKind
 
-from ._fixtures import load_json, require_household, signal_from_raw
+from ._fixtures import DEFAULT_AS_OF, load_json, require_household, signal_from_raw
 
 DEFAULT_SOURCE = "mock_bank"
 
@@ -22,8 +22,11 @@ DEFAULT_SOURCE = "mock_bank"
 class MockTransactionProvider:
     """Satisfies `quiet_hours_integrations.base.TransactionProvider`."""
 
-    def __init__(self, fixtures_dir: Path) -> None:
+    def __init__(self, fixtures_dir: Path, as_of: datetime = DEFAULT_AS_OF) -> None:
         self._fixtures_dir = fixtures_dir
+        self._as_of = as_of
+        """The fixture world's reference "now" — see `_fixtures.DEFAULT_AS_OF`.
+        Only `merchant_history` needs it, for its recency cutoff."""
 
     def fetch_since(self, household_id: str, since: datetime, limit: int = 500) -> list[Signal]:
         require_household(self._fixtures_dir, household_id)
@@ -58,7 +61,7 @@ class MockTransactionProvider:
             )
             for raw in raw_entries
         ]
-        cutoff = datetime.now(UTC) - timedelta(days=30 * months)
+        cutoff = self._as_of - timedelta(days=30 * months)
         signals = [s for s in signals if s.occurred_at >= cutoff]
         signals.sort(key=lambda s: s.occurred_at)
         return signals
