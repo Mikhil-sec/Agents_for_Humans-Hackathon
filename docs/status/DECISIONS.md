@@ -165,3 +165,99 @@ change.
 
 **Affects:** A generates it, B reads it, C supersedes it.
 
+---
+
+## 2026-08-28 — /fixtures is generated in two stages, permanently
+
+**Decision:** `make fixtures` runs Lane C's seeder and then Lane A's exporter, in
+that order, and both are required.
+
+```
+quiet_hours_integrations.mock.seed   ->  household.json, inbox/*.json,
+                                          transactions.json, calendar.json,
+                                          merchant_history.json
+quiet_hours_agent.export_fixtures    ->  decisions.json, activity.json,
+                                          policies.json, runs.json,
+                                          daily_brief.json
+```
+
+**This supersedes the 24 August entry**, which framed `export_fixtures` as a
+temporary stand-in that Lane C's seeder would replace outright. It is stage two,
+not a stopgap.
+
+**Why:** the two halves of `/fixtures` are different kinds of artifact. The first
+five are the household's world before the agent touches it — Lane C's script, and
+authoring them is the job. The last five are a record of what the agent did in that
+world: a decision card exists because a signal was ingested, a finding was formed,
+an action was proposed and the policy engine declined to auto-approve it, and it
+carries a real `interrupt_id`, `session_id` and evidence citing real signal ids.
+Hand-authoring those would assert the autonomy curve rather than measure it, and the
+"only interrupts when there is a real decision" claim is the one a judge will probe
+hardest.
+
+**Scope, stated plainly:** landing Lane C's mock providers does not by itself move
+the four-week replay onto Lane C's data. `signals.py::load_signals_for` resolves a
+scripted scenario before consulting the providers, so the replay runs on Lane A's
+`scenarios.py`; the provider path serves the single-day run. Mock mode drives a
+scripted model — zero-credential `make demo` is root `AGENTS.md` rule 3 — and those
+scripts are keyed to signal ids, so the replay can only reason over Lane C's world
+once Lane A's weekly scripts are re-keyed onto frozen Lane C ids. That is a
+follow-on, tracked as A8, and it requires stable `signal_id`s, week membership on
+every raw item, and a scenario-to-signal-id manifest from Lane C.
+
+**Failure mode this closes:** `providers.py` fails open in mock mode by design, so
+the first bundle Lane C returned could have silently replaced Lane A's stand-in with
+an empty day. Lane C closed it from their side in `c/mock-providers` with an eager
+`require_fixture_set()` in `build_mock_providers`, which validates all five raw files
+before a bundle is handed back, so an unseeded `/fixtures` raises at build time
+rather than returning providers that each fail on first read.
+
+Lane A narrowed to match. The mock-mode fallback now covers
+`(NotImplementedError, FileNotFoundError)` only — the two "Lane C is not here yet"
+conditions — and any other failure propagates in both modes, because the fallback is
+for Lane C being *absent*, not for Lane C being *broken*. Separately,
+`signals.py::_from_providers` still tolerates one dead source but now raises
+`SignalSourcesUnavailable` when all three fail: a bundle-level fault hits every
+provider equally, and an empty signal list reads down the whole stack as a quiet day,
+which `WeekResult.autonomy_rate` scores as 1.0. A caller bug would otherwise publish
+itself as a perfect autonomy score.
+
+**Outstanding, and it lands with `c/fixtures-full`:** Lane A anchors its read window
+to wall-clock `now` (`LOOKBACK`, `CALENDAR_HORIZON`, and `tools/ingest.py` passing no
+`now`), while the fixture world is anchored to a fixed `DEFAULT_AS_OF` of 2026-08-26
+with the last signal dated 23 August. As written, the day run will read zero signals
+from a fully seeded `/fixtures` — three empty lists, no exception — and report a
+quiet day. Lane C has been asked to expose the reference date on the bundle as
+`Providers.as_of` so mock mode can anchor to the fixture world's clock; Lane A makes
+the change once that seam exists.
+
+**Affects:** C writes the five raw files and freezes their ids; A runs stage two and
+owns the `Makefile` change; B reads the result and should expect `runs.json` to gain
+its fourth point when A8 lands.
+
+---
+
+## 2026-08-28 — the vertical slice moves to 7 September; the submission date does not
+
+**Decision:** the end-to-end slice milestone moves from **31 August to 7 September**.
+Everything after it — Phase 3 polish from the 8th, the 12 September feature freeze,
+the submission itself — stays exactly where it was.
+
+**Why:** all three of us have been busier than the original plan assumed. A week is
+recoverable now; discovering on 6 September that the slice never closed is not.
+
+**What it costs, stated plainly so nobody is surprised:** the submission date is
+fixed, so this week comes out of **Phase 2 depth**, not out of the end. Phase 1 and
+Phase 2 now overlap, and anything in Phase 2 that is not on the critical path for the
+slice is the first thing to cut. Lane A's graph, policy learning and replay are
+already done, so the compression falls on B and C.
+
+**This date cannot move again.** A second slip has nowhere to go and lands on polish
+and the video — the two things judges actually see. If the 7th looks at risk, cut
+scope using `docs/lanes/TWO_PERSON_FALLBACK.md` rather than moving the date.
+
+**Unchanged:** record the slice working the day it closes, as video insurance.
+
+**Affects:** everyone. `docs/ROADMAP.md` updated. The critical path runs through Lane
+B — `web/` has no `package.json` and cannot install, and `POST /api/decisions/{id}/respond`
+is still a stub; the slice cannot close until both are real.

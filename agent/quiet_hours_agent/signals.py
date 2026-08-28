@@ -29,6 +29,10 @@ from .scenarios import signals_for
 logger = logging.getLogger(__name__)
 
 
+class SignalSourcesUnavailable(RuntimeError):
+    """Every provider in the bundle failed to read. See `_from_providers`."""
+
+
 def _demo_signals(household_id: str, now: datetime) -> list[Signal]:
     """A day's worth of household admin, chosen to exercise every specialist.
 
@@ -156,18 +160,38 @@ def _from_providers(bundle: Any, household_id: str, now: datetime) -> list[Signa
     since = now - LOOKBACK
     signals: list[Signal] = []
 
-    for label, read in (
+    sources = (
         ("email", lambda: bundle.email.fetch_since(household_id, since)),
         ("transactions", lambda: bundle.transactions.fetch_since(household_id, since)),
         (
             "calendar",
             lambda: bundle.calendar.fetch_between(household_id, now, now + CALENDAR_HORIZON),
         ),
-    ):
+    )
+
+    failed: list[str] = []
+    for label, read in sources:
         try:
             signals.extend(read() or [])
         except Exception:
+            failed.append(label)
             logger.warning("could not read %s signals for %s", label, household_id, exc_info=True)
+
+    # **Every source failing is not a quiet day.** One down is tolerable — that is
+    # what the per-source catch is for. All three down is a bundle-level fault
+    # affecting every provider equally: the wrong `household_id` (Lane C's mock
+    # providers raise `UnknownHouseholdError` from `require_household`, which every
+    # `fetch_*` calls), a fixtures directory that moved, a bad bundle.
+    #
+    # Swallowing that returns an empty signal list, which reads all the way down
+    # the stack as "nothing happened today": no findings, no actions, and
+    # `WeekResult.autonomy_rate` scores zero actions as **1.0**. A caller bug would
+    # publish itself as a perfect autonomy score. Fail instead.
+    if failed and len(failed) == len(sources):
+        raise SignalSourcesUnavailable(
+            f"every signal source failed for {household_id!r} ({', '.join(failed)}); "
+            "this is a bundle-level fault, not a quiet day — see the logged tracebacks."
+        )
 
     # Oldest first, matching the order every provider promises individually, so
     # the rendered context reads chronologically whatever order they came back in.

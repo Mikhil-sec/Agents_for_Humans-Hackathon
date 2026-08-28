@@ -29,7 +29,7 @@ from quiet_hours_contracts import Money, Signal, SignalKind
 from quiet_hours_agent import providers as providers_module
 from quiet_hours_agent import signals as signals_module
 from quiet_hours_agent.providers import ProvidersUnavailable, get_providers
-from quiet_hours_agent.signals import load_signals_for
+from quiet_hours_agent.signals import SignalSourcesUnavailable, load_signals_for
 from quiet_hours_agent.tools import actions
 
 HOUSEHOLD = "hh_demo"
@@ -251,6 +251,55 @@ def test_the_absence_warning_is_logged_once_per_process(caplog):
         get_providers("mock")
 
     assert sum("falling back" in record.message for record in caplog.records) == 1
+
+
+@pytest.mark.parametrize(
+    ("raised", "falls_back"),
+    [
+        (FileNotFoundError("fixtures/inbox/*.json"), True),
+        (NotImplementedError("not written yet"), True),
+        (ValueError("household.json failed validation"), False),
+    ],
+    ids=["fixtures-absent", "providers-absent", "fixtures-malformed"],
+)
+def test_the_fallback_covers_lane_c_being_absent_not_lane_c_being_broken(
+    monkeypatch, raised, falls_back
+):
+    """`require_fixture_set()` raises `FixturesNotFoundError` — a `FileNotFoundError`
+    — when the raw files are not seeded yet, and that is a documented stand-in
+    condition. A malformed `household.json` is a defect in a bundle that *does*
+    exist, and downgrading mock mode to the stand-in would hide it behind a demo
+    that still runs but is quietly worse.
+    """
+    from quiet_hours_integrations import registry
+
+    def explode(*args, **kwargs):
+        raise raised
+
+    monkeypatch.setattr(registry, "get_providers", explode)
+    providers_module.reset_cache()
+
+    if falls_back:
+        assert get_providers("mock") is None
+    else:
+        with pytest.raises(ValueError):
+            get_providers("mock")
+
+
+def test_every_source_failing_is_an_error_not_a_quiet_day(bundle):
+    """Zero actions scores as 1.0 autonomy. A bundle-level fault — the wrong
+    `household_id`, a moved fixtures directory — would otherwise publish itself as
+    a perfect autonomy score rather than as a bug."""
+
+    def explode(*args, **kwargs):
+        raise ValueError("'hh_wrong' is not the demo household")
+
+    bundle.email.fetch_since = explode
+    bundle.transactions.fetch_since = explode
+    bundle.calendar.fetch_between = explode
+
+    with pytest.raises(SignalSourcesUnavailable):
+        load_signals_for(HOUSEHOLD, mode="mock", now=NOW)
 
 
 # --------------------------------------------------------------------------

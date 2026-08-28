@@ -862,3 +862,68 @@ Unchanged from this morning: `get_providers()`, `mock.seed` (now worked around r
 blocking), `CalendarProvider.update_event`, somewhere for `dispute_charge`, and the
 DynamoDB table.
 
+
+---
+
+## 2026-08-28 — session with Claude Code
+
+**Done**
+
+- Answered Lane C's cross-lane question on the `/fixtures` raw-vs-derived split.
+  **Decision: two stages, permanently.** Lane C's seeder writes the five raw input
+  files; `export_fixtures` writes the five derived ones from a real run. This
+  supersedes the 24 Aug entry that framed the exporter as a stopgap. Entry for
+  `DECISIONS.md` drafted and pending; `c/fixtures-full` is unblocked.
+- Narrowed the mock-mode provider fallback. `providers.py` now falls back only on
+  `(NotImplementedError, FileNotFoundError)` — the two "Lane C is not here yet"
+  conditions. `FixturesNotFoundError` subclasses `FileNotFoundError`, so it is
+  caught structurally without importing Lane C's private `mock/_fixtures`.
+  Anything else now propagates in **both** modes: the fallback exists for Lane C
+  being *absent*, not *broken*, and hiding a malformed fixture behind a demo that
+  still runs but is quietly worse is the failure this seam is meant to prevent.
+- `signals.py::_from_providers` still tolerates one dead source. **All three
+  failing now raises `SignalSourcesUnavailable`.** A bundle-level fault hits every
+  provider equally, and an empty signal list reads down the whole stack as a quiet
+  day — `WeekResult.autonomy_rate` scores zero actions as 1.0, so a caller bug
+  would otherwise publish itself as a perfect autonomy score.
+- Corrected the stale Bedrock model id in `agent/.env.example`. Sonnet 4.5 is only
+  invocable through a cross-region inference profile; the bare id returns HTTP 400.
+  `models.py::DEFAULT_BEDROCK_MODEL_ID` was already correct.
+
+**Verified how**
+
+- 178 tests pass (was 174), ruff clean across all four lanes.
+- Lane C's `c/mock-providers` extracted to a scratch dir and the full Lane A suite
+  plus `make agent` run against their real bundle: 178 pass, demo unchanged at
+  2/3 handled silently. Their eager `require_fixture_set()` behaves as described —
+  with `/fixtures` unseeded the bundle raises at build time and Lane A's stand-in
+  still fires.
+
+**Blocked / needs a human**
+
+- **`Providers.as_of` — raised with Lane C, needed before `c/fixtures-full`.**
+  Their fixture world is anchored to a fixed `DEFAULT_AS_OF` (2026-08-26, last
+  signal 23 Aug); Lane A anchors its read window to wall-clock `now` (`LOOKBACK`,
+  `CALENDAR_HORIZON`, and `tools/ingest.py` passing no `now`). As written, the day
+  run will read **zero signals** from a fully seeded `/fixtures` — three empty
+  lists, no exception — and report a quiet day. Neither their fixture guard nor
+  the new all-sources check catches it, because nothing raises. Lane A makes the
+  change once the reference date is visible on the bundle.
+
+**Notes for the next session**
+
+- **A8 is the next unit of work**, and Lane B is downstream of all three parts:
+  1. Evidence is unbacked on every card. `graph.py::harvest` builds
+     `ProposedAction`s *after* the run with fresh ids, so the tool call carries no
+     `action_id` and `hooks.py::_action_from_tool_use` synthesises one with
+     `finding_id="unbacked"` and a dud `Evidence`. Specialists must cite
+     `finding_id` on the call so the gate can copy the finding's real evidence.
+  2. `runs.json` is missing its headline. `save_run` is only called from
+     `replay.py`, and `export_fixtures` runs week 4 through `build_graph`
+     directly — so the file holds three runs, 43% → 71% → 83%, and the 86% point
+     is absent. `decisions.json` also holds a pending card whose `run_id` matches
+     no run in `runs.json`.
+  3. `as_of` anchoring, once Lane C answers.
+- `make fixtures` stays `seed || export` until `c/fixtures-full` is ready to
+  merge. Flipping it to an unconditional two-stage target before the seeder writes
+  files kills `make demo` at step one.
