@@ -69,7 +69,7 @@ Every response carries `contract_version`. The web app compares it against its c
 
 ## How you avoid ever waiting for Lane A
 
-`api/app/fixtures_server.py` serves static, contract-shaped JSON from `/fixtures`. Run it with `QH_BACKEND=fixtures` and build the entire web app against it.
+`api/app/backends/fixtures.py` serves static, contract-shaped JSON from `/fixtures` (it replaced the `api/app/fixtures_server.py` stub when the API grew a store seam — see `api/app/backends/base.py`). Run the API with `QH_BACKEND=fixtures` and build the entire web app against it.
 
 Build the full UI — every screen, every state — before the agent produces a single real card. When Lane A is ready, flip `QH_BACKEND=live`. If the contract held, nothing breaks.
 

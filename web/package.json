@@ -1,0 +1,30 @@
+{
+  "name": "quiet-hours-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Quiet Hours - the decision inbox (Lane B)",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run lint"
+  },
+  "dependencies": {
+    "next": "15.5.25",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "15.5.25",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2"
+  }
+}
