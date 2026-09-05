@@ -465,3 +465,116 @@ session did):
   Amazon Nova failed too, not just the Anthropic model, so this is not specific to the
   Anthropic use-case submission — narrows the likely cause to something account- or
   region-level rather than model-access approval. Awaiting AWS's response.
+
+---
+
+## 2026-09-05 — session with Claude Code, `c/fixtures-full`
+
+**Done**
+
+- **Implemented the seeder** (`integrations/quiet_hours_integrations/mock/seed.py`), replacing
+  the `SystemExit` stub. Writes the five raw files plus `fixtures/scenarios.json`; does not
+  touch the four derived files, per Mikhil's decision. Ran it for real against `fixtures/` —
+  `household.json` is now generated (content unchanged, just re-formatted) and
+  `inbox/` (23 messages), `transactions.json` (38 records), `calendar.json` (2 events),
+  `merchant_history.json`, and `scenarios.json` are new. Not committed.
+- **Found and fixed an arithmetic bug in the four-weeks design doc before implementing it,
+  rather than implementing it as written.** Its offset table gave `week_4_monday = as_of-13`
+  and `week_4_sunday = as_of-3` — a 10-day span where a Monday-to-Sunday week is 6. Re-derived
+  from the constraint both design docs actually treat as load-bearing (the three-day gap after
+  week 4 closes) and the stated 7-day spacing between week-Mondays, giving
+  `week_1..4 = as_of-30/-23/-16/-9`, `household_created = as_of-37` — verified this exactly
+  reproduces the original absolute calendar (20/27 Jul, 3/10/17/23 Aug) at the current default
+  `as_of` before writing a line of the seeder. The corrected relationship is expressed in code
+  as a derivation (`WEEK_MONDAY_OFFSET_DAYS` computed from `WEEK4_SUNDAY_OFFSET_DAYS` and
+  `WEEK_SPAN_DAYS`), not as five more independent literals, so it can't drift apart again the
+  way the doc's own numbers did.
+- **The two hard invariants hold, verified by test, not just by construction:** every signal id
+  is a fixed string with no digit run of 4+ (`sig_fitlife_renewal`, `sig_pret_double_1`, etc.);
+  re-seeding at `DEFAULT_AS_OF + 30 days` produces an *identical set* of ids; re-seeding twice
+  at the same `--as-of` produces byte-identical files (checked by content, not just by
+  `filecmp`, across every file including `inbox/`). All computed as `as_of`-relative offsets —
+  nothing in the module reads wall-clock time.
+- **`--as-of` on the CLI**, parsed via `datetime.fromisoformat` (accepts a bare date, assumed
+  UTC), defaulting to `DEFAULT_AS_OF` — the same constant `mock/_fixtures.py` already used, not
+  a re-declared copy. Dropped the old stub's `--seed` argument: nothing in the module uses
+  randomness (varied-looking amounts come from a fixed deterministic spread,
+  `_deterministic_amount`, not an RNG), so a "seed" for reproducibility no longer means
+  anything. Dropped `--weeks` too — the fixture world is a specific nine-scenario narrative,
+  not a parametrisable generic generator, and a flag that didn't change anything would mislead.
+- **The nine scenarios, all present and cross-checked against the raw files by test:** the
+  dentist/weekly-sync clash, the Dropbox+Google One duplicate (snoozed week 1, resurfacing week
+  2), Streamly's price rise (the email deliberately never states the new figure — only the
+  transaction does), the Pret A Manger double charge, the Thames Water usage spike (3× the
+  £34-ish baseline), Aviva's renewal quote (22% above last year), a new trial-converting
+  scenario (**The Times** digital subscription, invented on my side — see below), and FitLife's
+  annual-renewal live card. `fixtures/scenarios.json` has all nine, each `signal_ids` entry
+  checked present in the raw files by test.
+- **Merchant coverage matches `LANE_C_FIXTURE_DESIGN.md`'s specific figures, verified by
+  test, not eyeballed:** FitLife — 17 monthly `£38` charges April 2025–August 2026 generated
+  generically (no hardcoded "12-in-window"), and the provider's own 360-day cutoff naturally
+  yields exactly 12 records totalling **£456** at the default `as_of`, which is the number the
+  card depends on. Camden Council — a 12-month scan skipping February and March yields exactly
+  **10** records at any `as_of`, by construction. British Gas — variance held to exactly
+  `£92.60–£96.40` via a fixed 12-entry cycle. Every merchant appearing in `transactions.json`
+  has a matching key in `merchant_history.json` (the exact-string-match invariant), including
+  ones invented for daily-noise volume (Sainsbury's, Shell, TfL, Boots, Pret A Manger).
+- **Judgment calls made and worth flagging, not buried:**
+  - **British Gas's current bill is now £94.20, not the brief's original £84.20.** The
+    merchant-history coverage table (already agreed) puts the twelve-month range at
+    £92.60–96.40; keeping the old £84.20 as "this month's bill" would have made a routine,
+    near-flat bill look like an ~11% drop the moment BillAnalyst compared it against its own
+    history — the opposite of the "routine, learn to stop asking" story it's meant to tell.
+  - **Invented "The Times" as the trial-converting merchant.** The original brief's trial
+    scenario (signed up 13 days ago, converts to £24/mo) didn't survive into either design doc
+    with a named merchant. Per the naming doc's own rule — invent only for scenarios
+    attributing shabby behaviour to a company, real names everywhere else — a trial simply
+    ending is neutral, ordinary behaviour, so a real, verifiable UK brand fits; a genuine
+    newspaper digital subscription at a plausible price was the closest fit to the existing
+    £24 figure.
+  - **The Aviva and Streamly "current" transactions reflect the new, higher price**, not the
+    old one — i.e. the renewal/price-rise has already been charged by the time the agent sees
+    it, which is what gives BillAnalyst something concrete to compare against the emailed quote
+    or the flat history, rather than asking it to reason from the email's prose alone.
+- 15 new tests in `integrations/tests/test_seed.py`, covering section 8 of
+  `LANE_C_FIXTURE_DESIGN_WEEKS.md` in full plus three items carried over from
+  `LANE_C_FIXTURE_DESIGN.md` §5 (Camden's exact count, British Gas's variance, FitLife's exact
+  total) that were cheap to keep pinned. One test bug caught and fixed along the way:
+  `timedelta.days` truncates when the two datetimes being subtracted don't share a
+  time-of-day, which the first draft of the three-day-gap test didn't account for — fixed by
+  comparing `.date()` values instead of raw `.days`.
+- **Verified against the real cross-lane seam, not just unit tests:** with real fixtures now in
+  `/fixtures`, `get_providers('mock')` returns a real bundle (`bundle.as_of` correctly
+  `2026-08-26`) and Lane A's `_demo_signals` fallback no longer fires. Calling
+  `load_signals_for` with `now=datetime.now(UTC)` (today, 2026-09-05) returns **zero
+  signals** — exactly the bug Mikhil predicted in `FOR_YORVAN.md` §3, since `signals.py` on
+  this tree still anchors to wall-clock time rather than `bundle.as_of`, and his fix for that
+  lives on `miks-branch`, unmerged. Calling the same function with `now=bundle.as_of` instead —
+  simulating what his fix will do — returns exactly the two signals designed to be "live" at
+  the default `as_of`: the FitLife renewal notice and The Times 48-hour reminder. **This
+  confirms the fixtures are correct and the gap is entirely the known, already-flagged,
+  cross-lane seam** — not something introduced or fixable from this side. `make agent` itself
+  does not crash; it currently shows a stale pending decision from `.local/store` left over
+  from an earlier session run before it would even reach the provider path (not cleared —
+  `rm -rf` on `.local/` was blocked by the sandbox's destructive-op guard; harmless local dev
+  state, not a fixture or code issue).
+- Integrations suite: **35 → 50** (15 new). All pass. `ruff check` clean. Lane A's suite:
+  **174 passed, unchanged** — expected, since none of this touches `/agent`.
+- **Moved the four-weeks design doc from repo root (`fixtures-design-four-weeks.md`) to
+  `docs/lanes/LANE_C_FIXTURE_DESIGN_WEEKS.md`**, with Yorvan's go-ahead — companion to the
+  existing `LANE_C_FIXTURE_DESIGN.md`, same reasoning as that file's placement and
+  `FOR_YORVAN.md`'s move. It was untracked, so a plain filesystem move, not `git mv`.
+
+**Not done**
+
+- Have not told Mikhil the signal ids are frozen / ready for his A8 re-keying. Worth doing once
+  this entry is settled.
+
+**Blocked / needs a human**
+
+- **Mikhil's A8** (re-keying `scenarios.py` onto real signal ids, and the `signals.py` fix that
+  anchors to `bundle.as_of`) is the dependency that turns this real data into a working
+  single-day demo and four-week replay. Until it merges from `miks-branch`, `make agent`'s
+  single-day path reads real fixtures but finds nothing "today" by wall-clock time — confirmed
+  above, not guessed at.
+- AWS support case 178815493800207 — still awaiting response, unchanged.

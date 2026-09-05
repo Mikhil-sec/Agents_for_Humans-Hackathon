@@ -1,0 +1,7 @@
+{
+  "body": "Book your spot before they fill up.",
+  "occurred_at": "2026-08-12T10:00:00Z",
+  "signal_id": "sig_noise_gym_promo",
+  "source": "mock_gmail",
+  "subject": "New classes added this month"
+}

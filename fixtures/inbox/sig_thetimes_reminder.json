@@ -1,0 +1,13 @@
+{
+  "amount": {
+    "amount_minor": 2400,
+    "currency": "GBP"
+  },
+  "body": "After that you'll be charged GBP 24.00 a month unless you cancel before then.",
+  "merchant": "The Times",
+  "occurred_at": "2026-08-26T08:00:00Z",
+  "signal_id": "sig_thetimes_reminder",
+  "source": "mock_gmail",
+  "subject": "Your free trial ends in 48 hours",
+  "thread_id": "thread_thetimes_trial"
+}

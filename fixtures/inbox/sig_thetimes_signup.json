@@ -1,0 +1,9 @@
+{
+  "body": "Enjoy full digital access. After your trial you'll pay GBP 24.00 a month.",
+  "merchant": "The Times",
+  "occurred_at": "2026-08-13T10:00:00Z",
+  "signal_id": "sig_thetimes_signup",
+  "source": "mock_gmail",
+  "subject": "Welcome to The Times \u2014 your free trial has started",
+  "thread_id": "thread_thetimes_trial"
+}

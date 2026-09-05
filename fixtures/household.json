@@ -1,9 +1,12 @@
 {
-  "household_id": "hh_demo",
-  "display_name": "The Okonkwo-Bennett household",
-  "timezone": "Europe/London",
+  "created_at": "2026-07-20T09:00:00Z",
   "currency": "GBP",
   "digest_hour_local": 8,
-  "quiet_hours_local": [22, 7],
-  "created_at": "2026-07-20T09:00:00Z"
+  "display_name": "The Okonkwo-Bennett household",
+  "household_id": "hh_demo",
+  "quiet_hours_local": [
+    22,
+    7
+  ],
+  "timezone": "Europe/London"
 }

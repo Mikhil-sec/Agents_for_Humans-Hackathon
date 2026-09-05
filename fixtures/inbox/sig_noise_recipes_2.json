@@ -1,0 +1,7 @@
+{
+  "body": "Noise the agent should ignore.",
+  "occurred_at": "2026-08-16T10:00:00Z",
+  "signal_id": "sig_noise_recipes_2",
+  "source": "mock_gmail",
+  "subject": "This week's seasonal recipes"
+}

@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 999,
+    "currency": "GBP"
+  },
+  "body": "Thanks for being a Dropbox Plus (2TB) member. Your next payment is GBP 9.99.",
+  "merchant": "Dropbox",
+  "occurred_at": "2026-07-29T09:00:00Z",
+  "signal_id": "sig_dropbox_receipt",
+  "source": "mock_gmail",
+  "subject": "Your Dropbox receipt"
+}

@@ -1,0 +1,7 @@
+{
+  "body": "Shop now before the offer ends.",
+  "occurred_at": "2026-08-03T10:00:00Z",
+  "signal_id": "sig_noise_weekend_sale",
+  "source": "mock_gmail",
+  "subject": "20% off this weekend only"
+}
