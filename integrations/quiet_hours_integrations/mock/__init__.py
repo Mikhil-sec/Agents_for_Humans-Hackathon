@@ -34,4 +34,5 @@ def build_mock_providers(fixtures_dir: Path, as_of: datetime = DEFAULT_AS_OF) ->
         calendar=MockCalendarProvider(fixtures_dir),
         payments=MockPaymentProvider(fixtures_dir),
         subscriptions=MockSubscriptionProvider(fixtures_dir),
+        as_of=as_of,
     )

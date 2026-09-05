@@ -331,3 +331,137 @@ code. Nothing in `/integrations`, `/fixtures` or `/infra` was modified.
   Adding `docs/lanes/` to Lane C's scope would be a one-line change to the protocol table or
   CODEOWNERS — but `docs/AI_AGENT_PROTOCOL.md` isn't ours either, so it's a request to Mikhil,
   batched with the outstanding fixtures-shape question.
+
+---
+
+## 2026-08-31 — no code produced
+
+This session investigated the Bedrock access failure and read Mikhil's fixtures-shape answer.
+Nothing in `/integrations`, `/fixtures`, or `/infra` was touched, so no commit followed and
+nothing was recorded at the time — reconstructed here so the timeline isn't missing a day.
+
+**Done**
+
+- **Bedrock invocation confirmed broken account-wide, not Anthropic-specific.** Claude
+  Sonnet 4.5 via the `us.` inference profile, Claude Haiku 4.5, and Amazon Nova 2 Lite all
+  returned `ValidationException: Operation not allowed`. Nova is first-party Amazon with no
+  third-party model subscription involved, which rules out the Anthropic use-case submission
+  as the cause and points at something account- or region-level instead. **AWS support case
+  178815493800207** filed, type *Account / Other Account Issues* — awaiting response.
+- **Mikhil's `FOR_YORVAN.md` received**, answering the outstanding fixtures-shape question.
+  Its substance — the two-stage split approved and permanent, `c/fixtures-full` unblocked, the
+  `"unbacked"` signal_id traced to a Lane A bug rather than an argument for hand-authoring, the
+  `except`-seam correction, and what's still outstanding for the seeder — is summarised in the
+  5 September entry below, where it was actually acted on. Noted here only that it arrived
+  this day, so the timeline is complete.
+- **Cross-lane review, read-only, no action taken:** Mikhil's `providers.py`/`signals.py`
+  hardening (described in the 5 September entry) sits on `miks-branch`, unmerged into `main`.
+  Lane B's `diya` branch is at the same commit as `main` — `web/` has no `package.json`,
+  `tsconfig.json`, or Next.js config, so it cannot install or build from a clean clone. Neither
+  is a Lane C fix or blocker; recorded as a status snapshot.
+
+**Blocked / needs a human**
+
+- AWS support case 178815493800207 — awaiting response.
+
+---
+
+## 2026-09-05 — session with Claude Code, `Providers.as_of` + Mikhil's `FOR_YORVAN.md`
+
+**Done**
+
+- **Added `Providers.as_of` to `base.py`**, at Mikhil's request (relayed in `FOR_YORVAN.md`,
+  §3 — see below): keyword-only, default `None`. `None` means "use wall-clock
+  `datetime.now(UTC)`" — correct for `LIVE`, which leaves it unset because a live run's "now"
+  really is now. `build_mock_providers` always sets it to the real reference date
+  (`mock._fixtures.DEFAULT_AS_OF`, 2026-08-26), because mock fixtures are anchored to a fixed
+  point in time and a caller computing a lookback window needs to know what "now" means for
+  the bundle it's holding. Documented as `bundle.as_of or datetime.now(UTC)` being the pattern
+  a caller should write, never `datetime.now(UTC)` alone — the latter is what silently made a
+  mock-mode lookback window read the fixtures as a quiet day once wall-clock time drifted past
+  their fixed dates. Keyword-only with a default means every existing construction site
+  (`mock/__init__.py`'s call to `Providers(...)`) is unaffected without changes.
+- **Re-exported `FixturesNotFoundError`/`UnknownHouseholdError` from the package root**
+  (`quiet_hours_integrations/__init__.py`), not from `base.py` and not by moving the
+  definitions into it. Reasoning: `base.py` is the Protocol contract, meant to be
+  implementation-agnostic — satisfied equally by `mock/` and (eventually) `live/`. These two
+  exceptions are intrinsically about reading fixture files off disk; a live provider would
+  never raise either one, it fails on credentials or API errors instead. Moving them into
+  `base.py` would misrepresent them as part of the contract every implementation must satisfy,
+  when only `mock/` does. Re-exporting them *from* `base.py` would have the contract import
+  from one specific implementation, which is backwards — the exact inversion Mikhil's own ask
+  was careful to avoid triggering. The package root already aggregates the package's public
+  surface without taking a position on mock vs. live, so it can re-export an implementation's
+  error types without corrupting the contract file. `FixturesNotFoundError` still subclasses
+  `FileNotFoundError`, so existing structural `except FileNotFoundError` code keeps working
+  unchanged alongside the new named import.
+- Added `test_base_does_not_import_the_mock_package` (in `integrations/tests/test_package_exports.py`)
+  to guard the dependency direction the re-export choice depends on. First cut grepped
+  `inspect.getsource(base)` for the string `"mock"` and failed immediately — the module
+  docstring legitimately says `` `mock/` reads from `/fixtures` `` in prose. Fixed by parsing
+  the source with `ast` and walking `Import`/`ImportFrom` nodes instead, checking actual import
+  targets rather than substring-matching the whole file. Worth remembering generally: a
+  "this module doesn't import X" test needs to check imports, not grep text, or a docstring
+  mentioning X in passing fails it for the wrong reason.
+- Integrations suite: **28 → 35** (4 new in `test_base.py` for `Providers.as_of` semantics,
+  3 new in `test_package_exports.py` for the re-export and the AST-based import guard). All
+  pass, `ruff check` clean.
+- **Lane A's suite is 174, not the 178 Yorvan expected** — checked, and it's not a regression
+  on this tree: Mikhil's own 28 August fix (described below) lives on `miks-branch` and is not
+  merged into `main`, so none of the four tests it presumably adds are in this working copy.
+  Recording this explicitly so a future session diffing against "178" doesn't mistake 174 for
+  something having broken — it hasn't; the merge just hasn't happened yet.
+- **Read and processed `FOR_YORVAN.md`** (Mikhil's written answer to the fixtures-shape
+  question) and moved it to `docs/status/FOR_YORVAN.md`. It was untracked, so a plain
+  filesystem move. Placed there rather than `docs/lanes/` for the same reason as last entry's
+  scope note — it needs to be writable by Mikhil, addressed to a specific person rather than
+  either a lane brief or a binding cross-lane decision, and `docs/status/` is already where
+  the repo puts exactly that category of cross-person process communication, alongside
+  `DECISIONS.md` and the `PROGRESS_*.md` files.
+
+**Mikhil's answers from `FOR_YORVAN.md`** (full text now at `docs/status/FOR_YORVAN.md` —
+summarised here so the key resolutions survive even if that file is later archived):
+
+- **Two-stage raw/derived split: approved, and permanent.** The seeder writes the five raw
+  files and stops; `export_fixtures` stays as a permanent stage two, not a stand-in deleted on
+  landing. Mikhil owns the root `Makefile` and `DECISIONS.md` (CODEOWNERS default), and will
+  make both changes and revise the 24 Aug entry himself — **we should not draft either.**
+  **`c/fixtures-full` is unblocked.**
+- Two corrections that shape what the seeder should produce: (a) landing the providers alone
+  doesn't move the autonomy curve onto our data — the four-week replay resolves a scripted
+  scenario before it ever asks `providers.py` for a bundle, so it keeps running on Lane A's
+  `scenarios.py`/`replay.py::WEEKS` until Lane A re-keys those scripts onto our signal ids
+  (Mikhil's A8, needs our ids frozen first); (b) `"signal_id": "unbacked"` on every stored
+  decision/action is **a Lane A bug, not evidence that hand-authoring fixtures would have been
+  dishonest** — `hooks.py::_action_from_tool_use` falls through to a hard-coded placeholder
+  when no `action_id` is available yet, and a hand-authored `decisions.json` would have
+  **hidden** this by writing a plausible-looking id instead. Also Mikhil's to fix (also A8).
+- **The `except` seam we fixed was in the right place structurally but the wrong exact
+  clause.** `UnknownHouseholdError` never reaches `providers.py` at all — `require_household()`
+  is called by each provider at *read* time, not by `require_fixture_set()` at *build* time, so
+  the clause that actually swallows it is the per-source catch in
+  `signals.py::_from_providers`, not `providers.py::_build`. Mikhil has since narrowed
+  `providers.py`'s fallback to `(NotImplementedError, FileNotFoundError)` only — the two
+  "Lane C isn't here yet" conditions — so any other fault (a malformed `household.json`, a
+  pydantic validation failure) now propagates in both modes instead of silently downgrading to
+  the stand-in; and hardened `signals.py` so all three sources failing raises
+  `SignalSourcesUnavailable` rather than reading as a quiet day with a perfect autonomy score.
+  This is the work that lives on `miks-branch`, unmerged — see the 174-vs-178 note above.
+
+**Still outstanding for the seeder** (per `FOR_YORVAN.md` §4, unchanged by anything this
+session did):
+
+- **Deterministic `signal_id`s.** `sig_<merchant>_<what>` style, stable across re-seeds — not
+  `new_id()`/uuid4. Mikhil's A8 re-keys `scenarios.py` onto these ids; a re-seed that
+  renumbers them breaks that silently, with no test to catch it.
+- **A scenario manifest** mapping the nine brief scenarios to the signal ids that carry them,
+  so Mikhil can re-key against something explicit rather than reading the inbox and guessing.
+
+**Blocked / needs a human**
+
+- Fixtures-shape question with Mikhil is resolved (see above) — `c/fixtures-full` is
+  unblocked, but not started this session.
+- **AWS support case 178815493800207**, filed 31 Aug: Bedrock invocation fails account-wide.
+  Amazon Nova failed too, not just the Anthropic model, so this is not specific to the
+  Anthropic use-case submission — narrows the likely cause to something account- or
+  region-level rather than model-access approval. Awaiting AWS's response.
