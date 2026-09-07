@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 9420,
+    "currency": "GBP"
+  },
+  "body": "Your bill for this month is GBP 94.20. Last month you paid GBP 92.60.",
+  "merchant": "British Gas",
+  "occurred_at": "2026-07-28T07:00:00Z",
+  "signal_id": "sig_britishgas_bill",
+  "source": "mock_gmail",
+  "subject": "Your British Gas bill is ready"
+}

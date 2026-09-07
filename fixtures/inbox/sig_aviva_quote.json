@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 26108,
+    "currency": "GBP"
+  },
+  "body": "Your renewal quote is GBP 261.08, 22% higher than last year's GBP 214.00.",
+  "merchant": "Aviva",
+  "occurred_at": "2026-08-13T09:00:00Z",
+  "signal_id": "sig_aviva_quote",
+  "source": "mock_gmail",
+  "subject": "Your contents insurance renewal quote"
+}

@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 45600,
+    "currency": "GBP"
+  },
+  "body": "Your annual membership renews in 6 days at GBP 456.00 for the year.",
+  "merchant": "FitLife",
+  "occurred_at": "2026-08-25T10:00:00Z",
+  "signal_id": "sig_fitlife_renewal",
+  "source": "mock_gmail",
+  "subject": "Your FitLife membership renews soon"
+}

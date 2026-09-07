@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 68000,
+    "currency": "GBP"
+  },
+  "body": "This month's fees are GBP 680.00, payable by the 5th.",
+  "merchant": "Little Acorns Nursery",
+  "occurred_at": "2026-07-27T08:00:00Z",
+  "signal_id": "sig_nursery_invoice",
+  "source": "mock_gmail",
+  "subject": "Little Acorns Nursery \u2014 this month's invoice"
+}
