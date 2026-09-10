@@ -63,7 +63,7 @@ from quiet_hours_contracts import (
     SignalKind,
 )
 
-from .graph import build_graph, harvest
+from .graph import build_graph, harvest, summarise_run
 from .resume import build_resume_payload, persist_decisions, was_interrupted
 from .scenarios import Act, Item, Scenario, register
 from .store import Store, new_id
@@ -923,14 +923,7 @@ def _run_week(
             session_id=session_id,
             started_at=when,
             finished_at=when,
-            stats=RunStats(
-                signals_ingested=len(run.invocation_state.get("signals") or []),
-                findings_created=len(outcome.findings),
-                actions_proposed=proposed,
-                actions_autonomous=autonomous,
-                decisions_raised=proposed - autonomous,
-                policies_applied=sum(1 for _a, v in verdicts if v.policy_id),
-            ),
+            stats=summarise_run(run, outcome),
         )
     )
 
@@ -1001,6 +994,7 @@ def render(result: ReplayResult, *, store: Store | None = None, household_id: st
     lines.append("")
     lines.append("  Every number above was counted from the audit trail. The policy engine")
     lines.append("  decided each one; nothing here was written by a model or hardcoded.")
-    lines.append("  The household is Lane A's stand-in data until Lane C's fixtures land.")
+    lines.append("  These four weeks are scripted scenarios, not Lane C's fixture world -")
+    lines.append("  a single day's run reads /fixtures; the curve is simulated over four.")
     lines.append("")
     return "\n".join(lines)

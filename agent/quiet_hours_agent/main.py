@@ -58,12 +58,11 @@ from quiet_hours_contracts import (
     DecisionCard,
     DecisionResponse,
     Run,
-    RunStats,
     RunStatus,
     RunTrigger,
 )
 
-from .graph import GraphRun, RunHarvest, build_graph, harvest
+from .graph import GraphRun, build_graph, harvest, summarise_run
 from .memory import build_memory, recall_block
 from .resume import build_resume_payload, persist_decisions, run_status_for, was_interrupted
 from .sessions import session_id_for
@@ -135,34 +134,6 @@ def _envelope_for(event: dict[str, Any]) -> dict[str, Any] | None:
     if kind == "multiagent_node_stop":
         return {"type": "node_finished", "node": event.get("node_id")}
     return None
-
-
-def _stats_for(run: GraphRun, outcome: RunHarvest) -> RunStats:
-    """Measured from the gate's recorded verdicts, never written by a model.
-
-    Same rule as the brief's headline numbers: the autonomy rate is the product's
-    central claim, so every figure behind it is counted.
-
-    `signals_ingested` is read off `invocation_state`, where the ungoverned
-    `load_signals` tool stashes the real `Signal` objects, rather than off
-    anything the model said about them.
-
-    A **resumed** run reports zero signals and zero findings, and that is correct
-    rather than a gap: a resumed graph replays only the interrupted node, so
-    ingest and triage stay completed and do not run again. Counting them a second
-    time would inflate exactly the numbers the autonomy chart is built from.
-    """
-    verdicts = run.policy_hook.verdicts
-    proposed = len(verdicts)
-    autonomous = sum(1 for _, verdict in verdicts if verdict.allow_silently)
-    return RunStats(
-        signals_ingested=len(run.invocation_state.get("signals") or []),
-        findings_created=len(outcome.findings),
-        actions_proposed=proposed,
-        actions_autonomous=autonomous,
-        decisions_raised=proposed - autonomous,
-        policies_applied=sum(1 for _, verdict in verdicts if verdict.policy_id),
-    )
 
 
 # --------------------------------------------------------------------------
@@ -356,7 +327,7 @@ async def _drive(
         yield {"type": "decision_required", "decision": card.model_dump(mode="json")}
 
     outcome = harvest(result, run, pending_decision_ids=[card.decision_id for card in cards])
-    stats = _stats_for(run, outcome)
+    stats = summarise_run(run, outcome)
 
     store.save_run(
         Run(

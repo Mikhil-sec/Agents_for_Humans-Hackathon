@@ -261,3 +261,71 @@ scope using `docs/lanes/TWO_PERSON_FALLBACK.md` rather than moving the date.
 **Affects:** everyone. `docs/ROADMAP.md` updated. The critical path runs through Lane
 B — `web/` has no `package.json` and cannot install, and `POST /api/decisions/{id}/respond`
 is still a stub; the slice cannot close until both are real.
+
+---
+
+## 2026-09-07 — findings get their ids before the specialists run, not after
+
+**Decision:** triage's findings are promoted into contract `Finding`s by a
+`FindingRecorder` hook on `AfterNodeCallEvent`, between triage completing and the
+first specialist starting. `graph.harvest()` reuses that list instead of minting a
+second set of ids.
+
+**Why:** findings used to get their ids in `harvest()`, which runs after the whole
+graph. So while a specialist was calling `cancel_subscription`, no finding existed to
+point at, and `PolicyHook` had no choice but to synthesise a `ProposedAction` with
+`finding_id="unbacked"` and a placeholder `Evidence` reading *"Tool call
+cancel_subscription with ['merchant', 'monthly_amount_minor', 'rationale', 'reason']"*.
+That string was what the user read under "why am I being asked this", on **every card
+the product has ever raised**.
+
+**Affects Lane B directly.** `DecisionCard.evidence` now carries a real `signal_id`
+and a quoted line from the household's own inbox, so the card can render its evidence
+rather than hiding the field. The action also carries `params["category"]` copied from
+its finding, which is what a `CATEGORY`-scoped policy is matched against — previously
+only `tag_merchant` supplied one, so that scope was nearly unreachable.
+
+**Note 1 in `graph.py` still holds:** `PolicyHook` goes on each node `Agent`, never on
+the `GraphBuilder`. `FindingRecorder` is on the builder precisely because it is a
+multi-agent hook and governs nothing — it only assigns identity, which is code's job.
+
+## 2026-09-07 — `estimated_annual_savings` counts what executed, not what was proposed
+
+**Decision:** `RunStats.estimated_annual_savings` is counted from
+`PolicyHook.executed` — actions whose tool call actually ran and succeeded, whether
+silently or because the user approved them. Recurring costs
+(`cancel_subscription`, `downgrade_plan`, `close_account`) are annualised; a one-off
+(`dispute_charge`) is counted once; `pay_bill` is money going out and is not a saving.
+
+**Why:** the field has been declared in `/contracts` since the freeze and `null` on
+every run the product has produced. Two rules make the number defensible. Counting
+*proposals* would let the headline figure be inflated by asking for things rather than
+by doing them, which is the exact behaviour this product exists to argue against.
+Annualising a refund is the kind of arithmetic that makes a demo unbelievable to
+anyone who checks it.
+
+**Consequence worth knowing before the video:** the fixture set's fourth week reports
+`null`, because its one cancellation is still pending. Answer the card and the number
+appears. That is the intended behaviour and it is a better demo beat than a static
+figure.
+
+**Affects Lane B:** `runs.json` now populates the field for weeks 1–3
+(GBP 611.88 / 107.88 / 336.00) and leaves week 4 null. Treat null as "nothing secured
+yet", not as "not measured".
+
+## 2026-09-07 — the run's clock comes from the fixture world, not the wall
+
+**Decision:** `signals.resolve_now(explicit, bundle)` resolves a run's "now" in
+priority order: an explicit argument, then `Providers.as_of`, then `QH_AS_OF`, then
+wall clock. Every read window is anchored to it.
+
+**Why:** Lane C's fixture world is anchored to a fixed reference date (2026-08-26).
+A `LOOKBACK` measured from `datetime.now(UTC)` falls entirely after that world ends, so
+all three providers return empty lists — and **an empty list is not an exception**. It
+reads down the stack as a quiet day: no findings, no actions, and
+`RunStats.autonomy_rate` scoring zero actions as a perfect **1.0**. Verified before the
+fix: wall clock returned 0 signals, the anchored clock returns 2.
+
+**Affects everyone.** A defect that publishes itself as a perfect autonomy score is the
+worst kind this codebase can produce, so `export_fixtures` now refuses to write a
+fixture set generated from a run that ingested no signals.

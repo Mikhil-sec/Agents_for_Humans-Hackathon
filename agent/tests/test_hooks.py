@@ -21,6 +21,9 @@ from quiet_hours_contracts import (
     DecisionChoice,
     DecisionResponse,
     DecisionStatus,
+    Evidence,
+    Finding,
+    FindingKind,
     Money,
     Policy,
     PolicyScope,
@@ -436,3 +439,185 @@ def test_two_distinct_tool_calls_are_counted_separately(store):
     hook._verdicts["tooluse_b"] = (action, evaluate(action, []))
 
     assert len(hook.verdicts) == 2
+
+
+# --------------------------------------------------------------------------
+# Backing a card with the finding it came from
+# --------------------------------------------------------------------------
+#
+# Every decision card the product had ever raised cited `signal_id="unbacked"`
+# and an excerpt reading "Tool call cancel_subscription with ['merchant', ...]".
+# That string was what the user read under "why am I being asked this".
+#
+# The cause was ordering: findings got their ids in `graph.harvest()`, which runs
+# after the whole graph, so while a specialist was calling the tool there was no
+# finding to point at. `graph.FindingRecorder` now promotes them between triage
+# and the specialists, and the gate matches the call to one.
+
+
+def _finding(finding_id: str, *, merchant: str, signal_id: str, **kwargs) -> Finding:
+    return Finding(
+        finding_id=finding_id,
+        household_id=HOUSEHOLD,
+        run_id=RUN,
+        kind=kwargs.pop("kind", FindingKind.UNUSED_SUBSCRIPTION),
+        title=kwargs.pop("title", f"{merchant} needs a look"),
+        detail="detail",
+        confidence=kwargs.pop("confidence", 0.9),
+        merchant=merchant,
+        category=kwargs.pop("category", "fitness"),
+        evidence=[Evidence(signal_id=signal_id, excerpt=f"the line from {merchant}")],
+        created_at=datetime(2026, 8, 26, tzinfo=UTC),
+    )
+
+
+def _state(*findings: Finding) -> dict:
+    return {"household_id": HOUSEHOLD, "run_id": RUN, "findings": list(findings)}
+
+
+def _call(hook: PolicyHook, name: str, tool_input: dict, state: dict):
+    return hook._action_from_tool_use(
+        {"toolUseId": "tooluse_x", "name": name, "input": tool_input}, state
+    )
+
+
+def test_a_card_cites_the_evidence_its_finding_was_built_on(store):
+    """The regression test for the `unbacked` bug."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    finding = _finding("fin_1", merchant="FitLife", signal_id="sig_fitlife_charge")
+
+    action = _call(hook, "cancel_subscription", {"merchant": "FitLife"}, _state(finding))
+
+    assert action.finding_id == "fin_1"
+    assert [e.signal_id for e in action.evidence] == ["sig_fitlife_charge"]
+    assert action.evidence[0].excerpt == "the line from FitLife"
+
+
+def test_the_findings_category_reaches_the_action(store):
+    """`_category_of` reads `params["category"]`, and it is what a `CATEGORY`
+    scoped policy is learned and matched against. Only `tag_merchant` takes a
+    category argument, so without this the scope was nearly unreachable."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    finding = _finding("fin_1", merchant="FitLife", signal_id="sig_x", category="fitness")
+
+    action = _call(hook, "cancel_subscription", {"merchant": "FitLife"}, _state(finding))
+
+    assert action.params["category"] == "fitness"
+
+
+def test_a_category_on_the_call_is_not_overwritten(store):
+    """`tag_merchant` states one explicitly, and the call is more specific than
+    the finding it came from."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    finding = _finding("fin_1", merchant="FitLife", signal_id="sig_x", category="fitness")
+
+    action = _call(
+        hook, "tag_merchant", {"merchant": "FitLife", "category": "wellbeing"}, _state(finding)
+    )
+
+    assert action.params["category"] == "wellbeing"
+
+
+def test_a_merchant_named_only_in_free_text_still_resolves(store):
+    """The scheduling tools take no `merchant` — a reminder has a subject, a
+    calendar entry a title — but they name the merchant inside it. Without this
+    every scheduler action would be unbacked."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    finding = _finding("fin_dentist", merchant="Bridge Street Dental", signal_id="sig_dentist_appt")
+
+    action = _call(
+        hook,
+        "set_reminder",
+        {"subject": "Confirm dental check-up with Bridge Street Dental"},
+        _state(finding),
+    )
+
+    assert action.finding_id == "fin_dentist"
+
+
+def test_an_explicit_finding_id_wins_over_the_merchant(store):
+    """No tool declares `finding_id` yet, so nothing can supply one. The branch
+    is where a citation would be honoured once the id exists to be cited."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    cited = _finding("fin_cited", merchant="Streamly", signal_id="sig_streamly")
+    by_merchant = _finding("fin_merchant", merchant="FitLife", signal_id="sig_fitlife")
+
+    action = _call(
+        hook,
+        "cancel_subscription",
+        {"merchant": "FitLife", "finding_id": "fin_cited"},
+        _state(cited, by_merchant),
+    )
+
+    assert action.finding_id == "fin_cited"
+
+
+def test_an_unmatched_call_stays_honestly_unbacked(store):
+    """An improvised tool call is legitimate and still passes the gate at its
+    floor risk. What it must not do is claim evidence it does not have — a card
+    citing a signal that does not exist is worse than one citing none."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    finding = _finding("fin_1", merchant="FitLife", signal_id="sig_fitlife")
+
+    action = _call(hook, "cancel_subscription", {"merchant": "Acme"}, _state(finding))
+
+    assert action.finding_id == "unbacked"
+    assert action.evidence[0].signal_id == "unbacked"
+    assert action.risk is RiskTier.CONFIRM, "still gated at the floor for its kind"
+
+
+def test_two_findings_for_one_merchant_take_the_most_confident(store, caplog):
+    """A bill and a price rise from the same merchant in one run. Confidence is
+    the only ordering triage gives us, and picking silently would hide a real
+    ambiguity from whoever reads the trail."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+    low = _finding("fin_low", merchant="FitLife", signal_id="sig_a", confidence=0.4)
+    high = _finding("fin_high", merchant="FitLife", signal_id="sig_b", confidence=0.95)
+
+    with caplog.at_level("WARNING"):
+        action = _call(hook, "file_record", {"merchant": "FitLife"}, _state(low, high))
+
+    assert action.finding_id == "fin_high"
+    assert any("findings match this call" in record.message for record in caplog.records)
+
+
+def test_a_run_with_no_findings_is_not_an_error(store):
+    """`invocation_state` carries no findings when the graph was assembled by
+    hand — every direct `PolicyHook` test in this file, for one."""
+    _agent, hook = build(store, "file_record", {"merchant": "FitLife"})
+
+    action = _call(
+        hook, "file_record", {"merchant": "FitLife"}, {"household_id": HOUSEHOLD, "run_id": RUN}
+    )
+
+    assert action.finding_id == "unbacked"
+
+
+def test_an_approved_action_counts_as_executed(store):
+    """`RunStats.estimated_annual_savings` is counted from `PolicyHook.executed`.
+    Filtering on `Verdict.allow_silently` instead would report zero savings for a
+    household that approved every cancellation it was asked about — the opposite
+    of what happened."""
+    agent, hook = build(
+        store, "cancel_subscription", {"merchant": "FitLife", "monthly_amount_minor": 3800}
+    )
+    result = agent("cancel it")
+    card = persist_decisions(result, store, session_id=SESSION)[0]
+
+    assert hook.executed == []
+
+    agent(build_resume_payload([(card, respond(card, DecisionChoice.APPROVE))]))
+
+    assert [action.kind for action in hook.executed] == [ActionKind.CANCEL_SUBSCRIPTION]
+
+
+def test_a_denied_action_never_counts_as_executed(store):
+    agent, hook = build(
+        store, "cancel_subscription", {"merchant": "FitLife", "monthly_amount_minor": 3800}
+    )
+    result = agent("cancel it")
+    card = persist_decisions(result, store, session_id=SESSION)[0]
+
+    agent(build_resume_payload([(card, respond(card, DecisionChoice.DENY))]))
+
+    assert hook.executed == []

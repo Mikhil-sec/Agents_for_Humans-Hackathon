@@ -244,12 +244,14 @@ def test_the_rendered_curve_is_ascii_only(store, tmp_path):
 
 
 def test_the_output_says_whose_data_this_is(store, tmp_path):
-    """The mechanic and the arithmetic are real; the household is invented. A
-    judge should not have to ask."""
+    """The mechanic and the arithmetic are real; the four weeks are simulated. A
+    judge should not have to ask, and should not confuse the replay's scripted
+    scenarios with the fixture world a single day's run actually reads."""
     text = render(run_replay(store, tmp_path), store=store, household_id=HOUSEHOLD)
 
     assert "counted from the audit trail" in text
-    assert "stand-in" in text
+    assert "scripted scenarios" in text
+    assert "/fixtures" in text
 
 
 def test_a_week_with_nothing_to_do_reads_as_fully_autonomous():

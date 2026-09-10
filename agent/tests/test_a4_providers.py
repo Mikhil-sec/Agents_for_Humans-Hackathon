@@ -29,7 +29,13 @@ from quiet_hours_contracts import Money, Signal, SignalKind
 from quiet_hours_agent import providers as providers_module
 from quiet_hours_agent import signals as signals_module
 from quiet_hours_agent.providers import ProvidersUnavailable, get_providers
-from quiet_hours_agent.signals import SignalSourcesUnavailable, load_signals_for
+from quiet_hours_agent.signals import (
+    LOOKBACK,
+    InvalidAsOf,
+    SignalSourcesUnavailable,
+    load_signals_for,
+    resolve_now,
+)
 from quiet_hours_agent.tools import actions
 
 HOUSEHOLD = "hh_demo"
@@ -222,12 +228,23 @@ def test_email_provider_still_has_no_send_method():
 # --------------------------------------------------------------------------
 
 
-def test_mock_mode_falls_back_when_lane_c_is_absent():
-    """Today's real state: `get_providers()` raises, and the demo still works."""
-    assert get_providers("mock") is None
+def test_mock_mode_reads_lane_cs_real_providers():
+    """Was `test_mock_mode_falls_back_when_lane_c_is_absent`, which asserted
+    `get_providers("mock") is None` and described that as "today's real state".
+
+    It was, until Lane C's `c/mock-providers` merged on 2026-09-07. Mock mode
+    reads the seeded `/fixtures` now, so the assertion is inverted rather than
+    deleted: the fallback still exists, but for the bundle failing to *build*
+    (`test_the_fallback_covers_lane_c_being_absent_not_lane_c_being_broken`),
+    not for Lane C being absent.
+    """
+    bundle = get_providers("mock")
+
+    assert bundle is not None, "mock mode reads Lane C's providers now, not the stand-in"
+    assert bundle.as_of is not None, "the fixture world's reference date must reach Lane A"
 
     loaded = load_signals_for(HOUSEHOLD, mode="mock")
-    assert loaded, "the in-lane stand-in must still produce a day's signals"
+    assert loaded, "a seeded /fixtures must produce a day's signals"
 
 
 def test_live_mode_refuses_to_fall_back():
@@ -242,13 +259,27 @@ def test_live_signal_loading_refuses_to_fall_back():
         load_signals_for(HOUSEHOLD, mode="live")
 
 
-def test_the_absence_warning_is_logged_once_per_process(caplog):
+def test_the_absence_warning_is_logged_once_per_process(caplog, monkeypatch):
     """Six specialists times eleven tools times four replay weeks is a lot of
-    identical warnings, and a log that repeats itself is a log nobody reads."""
+    identical warnings, and a log that repeats itself is a log nobody reads.
+
+    The absence is simulated now: since `c/mock-providers` merged there is
+    nothing left to fall back *from*, so the warning cannot fire on its own. The
+    once-per-process guarantee is still worth pinning — it is the reason the
+    fallback is quiet enough to be survivable.
+    """
+    from quiet_hours_integrations import registry
+
+    def absent(*args, **kwargs):
+        raise NotImplementedError("Lane C: wire the providers here")
+
+    monkeypatch.setattr(registry, "get_providers", absent)
+    providers_module.reset_cache()
+
     with caplog.at_level("WARNING"):
-        get_providers("mock")
+        assert get_providers("mock") is None
         providers_module._cache.clear()  # force a rebuild, keep the warned set
-        get_providers("mock")
+        assert get_providers("mock") is None
 
     assert sum("falling back" in record.message for record in caplog.records) == 1
 
@@ -489,3 +520,92 @@ def test_the_two_unmapped_tools_still_work_in_lane(bundle):
     assert "Dispute prepared" in call(
         actions.dispute_charge, merchant="Acme", amount_minor=5000, reason="Never ordered this"
     )
+
+
+# --------------------------------------------------------------------------
+# Which clock the read window is anchored to
+# --------------------------------------------------------------------------
+
+
+def test_the_read_window_follows_the_fixture_world_not_the_wall_clock():
+    """The regression test for the bug this whole section exists for.
+
+    Lane C's fixture world is anchored to a fixed reference date and its last
+    raw signal is three days before it. A `LOOKBACK` measured from
+    `datetime.now(UTC)` falls entirely after that world ends, so all three
+    providers return empty lists — and **an empty list is not an exception**. It
+    reads down the stack as a quiet day, and `WeekResult.autonomy_rate` scores
+    zero actions as a perfect 1.0.
+
+    So the failure mode being pinned is not a crash. It is a demo that looks
+    like a working product having a slow morning.
+    """
+    anchored = load_signals_for(HOUSEHOLD, mode="mock")
+    wall_clock = load_signals_for(HOUSEHOLD, mode="mock", now=datetime.now(UTC))
+
+    assert anchored, "a seeded fixture world must not read as a quiet day"
+    assert wall_clock == [], (
+        "if this ever returns signals the fixture world has moved to the present "
+        "and this test no longer proves anything — check DEFAULT_AS_OF"
+    )
+
+    as_of = resolve_now(bundle=get_providers("mock"))
+    assert all(s.occurred_at >= as_of - LOOKBACK for s in anchored), (
+        "the window's near edge is anchored to the fixture world's clock"
+    )
+
+
+def test_an_explicit_now_wins_over_the_bundle():
+    """The replay names each week's moment, and must keep doing so — its four
+    weeks are scripted, not read from the fixture world."""
+    assert resolve_now(NOW, _StubBundle(datetime(2026, 8, 26, tzinfo=UTC))) == NOW
+
+
+def test_the_bundles_as_of_wins_over_the_wall_clock():
+    anchored = datetime(2026, 8, 26, tzinfo=UTC)
+
+    assert resolve_now(None, _StubBundle(anchored)) == anchored
+
+
+def test_the_env_override_is_used_when_the_bundle_has_no_as_of(monkeypatch):
+    """`as_of` is `None` on a live bundle, whose "now" really is now. The
+    override is the escape hatch for driving a demo at a chosen moment without
+    re-seeding `/fixtures`."""
+    monkeypatch.setenv("QH_AS_OF", "2026-08-26T09:30:00+00:00")
+
+    assert resolve_now(None, _StubBundle(None)) == datetime(2026, 8, 26, 9, 30, tzinfo=UTC)
+
+
+def test_a_bad_env_override_raises_rather_than_reverting_to_wall_clock(monkeypatch):
+    """A typo here silently reverts the run to the exact clock this function
+    exists to avoid, and the symptom is an empty day rather than an error."""
+    monkeypatch.setenv("QH_AS_OF", "last tuesday")
+
+    with pytest.raises(InvalidAsOf):
+        resolve_now(None, _StubBundle(None))
+
+
+def test_a_naive_moment_is_read_as_utc():
+    """Every provider compares against tz-aware datetimes; a naive one raises
+    `TypeError` several frames from whatever supplied it."""
+    naive = datetime(2026, 8, 26)  # noqa: DTZ001 - a naive value is the point
+    resolved = resolve_now(None, _StubBundle(naive))
+
+    assert resolved == datetime(2026, 8, 26, tzinfo=UTC)
+
+
+def test_wall_clock_is_the_last_resort(monkeypatch):
+    monkeypatch.delenv("QH_AS_OF", raising=False)
+    before = datetime.now(UTC)
+
+    resolved = resolve_now(None, _StubBundle(None))
+
+    assert before <= resolved <= datetime.now(UTC)
+
+
+class _StubBundle:
+    """Only the attribute `resolve_now` reads. Deliberately not the full
+    `Providers` Protocol — the point is that the clock resolves off one field."""
+
+    def __init__(self, as_of: datetime | None) -> None:
+        self.as_of = as_of

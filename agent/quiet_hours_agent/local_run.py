@@ -44,7 +44,7 @@ from quiet_hours_contracts import (
     RunTrigger,
 )
 
-from .graph import GraphRun, RunHarvest, build_graph, harvest
+from .graph import GraphRun, build_graph, harvest, summarise_run
 from .resume import build_resume_payload, persist_decisions, run_status_for, was_interrupted
 from .store import DEFAULT_STORE_DIR, JsonStore, build_store, new_id, utcnow
 
@@ -129,25 +129,6 @@ def _print_brief(brief) -> None:
     print(f"\n  Your brief: {brief.headline}")
     for line in brief.handled_silently:
         print(f"    - {line}")
-
-
-def _summarise(run: GraphRun, outcome: RunHarvest) -> RunStats:
-    """Every figure counted from the audit trail, never written by the model.
-
-    `signals_ingested` comes from `invocation_state`, where the ungoverned
-    `load_signals` tool stashes the real `Signal` objects.
-    """
-    verdicts = run.policy_hook.verdicts
-    proposed = len(verdicts)
-    autonomous = sum(1 for _, verdict in verdicts if verdict.allow_silently)
-    return RunStats(
-        signals_ingested=len(run.invocation_state.get("signals") or []),
-        findings_created=len(outcome.findings),
-        actions_proposed=proposed,
-        actions_autonomous=autonomous,
-        decisions_raised=proposed - autonomous,
-        policies_applied=sum(1 for _, verdict in verdicts if verdict.policy_id),
-    )
 
 
 def _save_run(store: JsonStore, run: GraphRun, *, session_id: str, result, stats: RunStats) -> None:
@@ -312,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
 
         _print_activity(store, household, run.run_id)
         _print_brief(outcome.brief)
-        _save_run(store, run, session_id=session_id, result=result, stats=_summarise(run, outcome))
+        _save_run(store, run, session_id=session_id, result=result, stats=summarise_run(run, outcome))
 
         new_rules = store.list_policies(household)
         if len(new_rules) > len(policies):
@@ -347,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     cards = persist_decisions(result, store, session_id=session_id) if was_interrupted(result) else []
     outcome = harvest(result, run, pending_decision_ids=[card.decision_id for card in cards])
 
-    stats = _summarise(run, outcome)
+    stats = summarise_run(run, outcome)
     _save_run(store, run, session_id=session_id, result=result, stats=stats)
 
     _print_findings(outcome.findings)

@@ -46,20 +46,30 @@ import json
 import logging
 import shutil
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from quiet_hours_contracts import DecisionChoice
+from quiet_hours_contracts import DecisionChoice, Run, RunTrigger
 
-from .graph import build_graph, harvest
+from .graph import build_graph, harvest, summarise_run
 from .replay import WEEKS, replay
-from .resume import persist_decisions, was_interrupted
+from .resume import persist_decisions, run_status_for, was_interrupted
 from .store import JsonStore, new_id
 
 logger = logging.getLogger(__name__)
 
 HOUSEHOLD = "hh_demo"
+
+REPLAY_START = datetime(2026, 8, 1, tzinfo=UTC)
+"""Week 1's date. Weeks 2-4 follow at weekly intervals, and the autonomy chart
+plots each run along that axis — so the fourth week's `Run` has to be dated from
+here too, not from wall clock."""
+
+
+class EmptyRunError(RuntimeError):
+    """The export run produced no signals. See `_require_signals`."""
+
 
 FIXTURE_FILES = (
     "decisions.json",
@@ -95,7 +105,7 @@ def build_state(store: JsonStore, session_dir: Path) -> Any:
         session_dir=session_dir,
         weeks=WEEKS[:3],
         answer=DecisionChoice.APPROVE_ALWAYS,
-        start=datetime(2026, 8, 1, tzinfo=UTC),
+        start=REPLAY_START,
     )
 
     # The fourth week runs but is never answered, so its cards stay pending and
@@ -111,11 +121,75 @@ def build_state(store: JsonStore, session_dir: Path) -> Any:
         mode="mock",
         scenario=WEEKS[3].key,
     )
+    # **The fourth week continues the series; it is not "now".** `replay` dates
+    # week N at `REPLAY_START + N weeks`, and the autonomy chart plots runs along
+    # that axis. Stamping this one with `utcnow()` put the final point weeks after
+    # the other three — the chart read "1 Aug, 8 Aug, 15 Aug, 7 Sept", with a gap
+    # that says the agent sat idle for a fortnight. Caught by looking at the
+    # rendered Insights page, not by any test.
+    started_at = REPLAY_START + timedelta(weeks=3)
     result = run("Do this household's admin for today.")
-    if was_interrupted(result):
-        persist_decisions(result, store, session_id=session_id)
 
-    return harvest(result, run, pending_decision_ids=[])
+    # **Keep the cards.** `harvest` was called with `pending_decision_ids=[]`, so
+    # the brief announced "Nothing needs you today" while a card sat pending in
+    # the same fixture set. Lane B renders the brief headline above the inbox,
+    # so the demo's first screen contradicted itself.
+    cards = (
+        persist_decisions(result, store, session_id=session_id) if was_interrupted(result) else []
+    )
+
+    outcome = harvest(result, run, pending_decision_ids=[card.decision_id for card in cards])
+
+    # **The fourth week needs a `Run` record like the other three.** `save_run`
+    # was only ever called from `replay.py`, and this week does not go through
+    # it — so `runs.json` held three runs and stopped one short of the point the
+    # autonomy chart is drawn to make, while `decisions.json` carried a pending
+    # card whose `run_id` matched no run in the file. Lane B renders both from
+    # these fixtures; a card pointing at a missing run is a broken link on the
+    # one screen a judge is guaranteed to open.
+    interrupted = was_interrupted(result)
+    store.save_run(
+        Run(
+            run_id=run_id,
+            household_id=HOUSEHOLD,
+            trigger=RunTrigger.SCHEDULE,
+            status=run_status_for(result),
+            session_id=session_id,
+            started_at=started_at,
+            # An interrupted run has not finished — it is waiting on the user,
+            # which is the whole state this week exists to show.
+            finished_at=None if interrupted else started_at,
+            stats=summarise_run(run, outcome),
+        )
+    )
+
+    _require_signals(run)
+    return outcome
+
+
+def _require_signals(run: Any) -> None:
+    """Refuse to export a fixture set generated from an empty day.
+
+    Zero signals is not an exception anywhere it passes through: the providers
+    return three empty lists, triage finds nothing, no specialist wakes, and
+    `RunStats.autonomy_rate` scores zero actions as a perfect **1.0**. The export
+    then writes an empty inbox, an empty trail and a flawless autonomy figure,
+    and every one of those files is contract-valid. It looks like a quiet day.
+
+    The way it actually happens is a clock mismatch — a read window anchored to
+    wall clock against a fixture world anchored to a fixed date (see
+    `signals.resolve_now`). That is a defect, and a defect that publishes itself
+    as a perfect score is the worst kind this codebase can produce.
+    """
+    signals = run.invocation_state.get("signals") or []
+    if signals:
+        return
+    raise EmptyRunError(
+        "the export run ingested no signals, so every fixture it would write is "
+        "an empty day with a 1.0 autonomy rate. Check that /fixtures is seeded "
+        "and that the read window is anchored to the fixture world's clock — "
+        "see signals.resolve_now."
+    )
 
 
 def export(out_dir: Path, *, store_dir: Path, session_dir: Path) -> list[Path]:
