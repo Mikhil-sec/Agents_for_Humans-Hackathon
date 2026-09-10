@@ -8,18 +8,41 @@ Backed by one of two stores, chosen with the `QH_BACKEND` environment variable:
 The fixtures backend is what lets Lane B build every screen without the agent
 existing, and it is what `make demo` serves to a judge. **It must always work.**
 
-LANE B: see docs/lanes/LANE_B_WEB.md for the full route list.
+Routes (frozen alongside the contracts, `docs/lanes/LANE_B_WEB.md`):
+
+    GET    /api/decisions?status=pending        Page<DecisionCard>
+    GET    /api/decisions/{id}                  DecisionCard
+    POST   /api/decisions/{id}/respond          DecisionResponse -> {run_id, status}
+    GET    /api/runs                            Page<Run>
+    GET    /api/runs/{id}                       Run
+    GET    /api/runs/{id}/stream                SSE - live agent progress
+    POST   /api/runs                            trigger a run (the demo button)
+    GET    /api/activity?autonomous=true        Page<ActivityEntry>
+    GET    /api/policies                        Page<Policy>
+    DELETE /api/policies/{id}                   revoke
+    GET    /api/brief/latest                    DailyBrief
+    GET    /api/health                          { status, contract_version }
+
+Two additive routes beyond that list, both serving existing contract models:
+`GET /api/household` (the web app needs `Household.timezone` to render UTC
+timestamps in local time) and `GET /api/brief/latest/preview` (the digest email
+template as HTML, so it can be reviewed without sending anything).
+
+LANE B: see docs/lanes/LANE_B_WEB.md for the full brief.
 """
 
 from __future__ import annotations
 
-import os
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from quiet_hours_contracts import CONTRACT_VERSION
 
-BACKEND = os.environ.get("QH_BACKEND", "fixtures")
+from .backends import get_backend
+from .config import BACKEND, CORS_ORIGINS
+from .errors import install_error_handlers
+from .routes import activity, brief, decisions, health, policies, runs
 
 app = FastAPI(
     title="Quiet Hours API",
@@ -29,36 +52,53 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("QH_CORS_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Contract-Version"],
 )
 
+install_error_handlers(app)
 
-@app.get("/api/health")
-def health() -> dict[str, str]:
-    """Liveness plus the contract version.
 
-    The web app compares `contract_version` against its compiled-in constant and
-    shows a banner on a major mismatch. Do not remove it - a stale deploy
-    rendering wrong data silently is a real risk during a three-week sprint.
+@app.middleware("http")
+async def contract_version_header(request: Any, call_next: Any) -> Any:
+    """Every response carries the contract version, in the body and in a header.
+
+    The header is what lets the web app notice a stale deploy on a response whose
+    body is a bare model rather than a `Page` envelope.
     """
-    return {"status": "ok", "backend": BACKEND, "contract_version": CONTRACT_VERSION}
+    response = await call_next(request)
+    response.headers["X-Contract-Version"] = CONTRACT_VERSION
+    return response
 
 
-# TODO(Lane B): mount routers - see docs/lanes/LANE_B_WEB.md
-#
-#   GET    /api/decisions?status=pending      Page<DecisionCard>
-#   GET    /api/decisions/{id}                DecisionCard
-#   POST   /api/decisions/{id}/respond        DecisionResponse -> {run_id, status}
-#   GET    /api/runs, /api/runs/{id}
-#   GET    /api/runs/{id}/stream              SSE
-#   POST   /api/runs                          trigger (the demo button)
-#   GET    /api/activity?autonomous=true      Page<ActivityEntry>
-#   GET    /api/policies, DELETE /api/policies/{id}
-#   GET    /api/brief/latest                  DailyBrief
-#
-# The interesting one is POST /decisions/{id}/respond: persist the response, then
-# hand `interrupt_id` back to the agent to resume the suspended session.
-# Treat session_id / interrupt_id / interrupt_name as OPAQUE - echo, never parse.
+app.include_router(health.router)
+app.include_router(decisions.router)
+app.include_router(runs.router)
+app.include_router(activity.router)
+app.include_router(policies.router)
+app.include_router(brief.router)
+
+
+@app.get("/api/household", tags=["household"])
+def household() -> dict[str, Any]:
+    """The household this deployment works for.
+
+    Additive to the frozen route list, returning the frozen `Household` model.
+    The web app needs `timezone` to convert UTC timestamps at render time and
+    `currency` for empty-state copy; hardcoding either in the web app would be a
+    contract violation waiting to happen.
+    """
+    return get_backend().household().model_dump(mode="json")
+
+
+@app.get("/", include_in_schema=False)
+def root() -> dict[str, str]:
+    return {
+        "service": "quiet-hours-api",
+        "backend": BACKEND,
+        "contract_version": CONTRACT_VERSION,
+        "docs": "/docs",
+    }

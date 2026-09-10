@@ -1,0 +1,152 @@
+@import 'tailwindcss';
+
+/*
+  Quiet Hours — the palette.
+
+  Calm, dense, trustworthy. Monzo or Linear, not a dashboard with twelve gauges.
+
+  **One accent colour, reserved exclusively for "this needs you".** Nothing else
+  in the product is allowed to use `accent`: not a link, not a primary button on
+  a settings page, not a chart series. The whole design rests on the accent
+  appearing only when the agent has stopped to ask something, so that its absence
+  is legible as "you are not needed here". A second use of it costs more than it
+  looks like it does.
+
+  `calm` is the counterweight: everything the agent handled by itself.
+
+  Dark mode ships, because judges screenshot it. The `.dark` class is set on
+  <html> before paint by the script in `layout.tsx`, so there is no flash.
+*/
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-calm: var(--calm);
+  --color-calm-wash: var(--calm-wash);
+  --color-danger: var(--danger);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-card: 14px;
+}
+
+:root {
+  --canvas: #f5f5f3;
+  --surface: #ffffff;
+  --raised: #fbfbfa;
+  --ink: #16181c;
+  --ink-soft: #464c54;
+  --muted: #767d87;
+  --line: #e4e4e0;
+  --accent: #9a4c0e;
+  --accent-ink: #ffffff;
+  --accent-wash: #fdf2e5;
+  --calm: #2f6f62;
+  --calm-wash: #eef4f2;
+  --danger: #a12626;
+
+  /* Chart series. Validated with the dataviz six checks against this mode's
+     surface: lightness band, chroma floor, CVD separation (deutan/protan/tritan),
+     normal-vision floor and >= 3:1 contrast. Warm means "this needed you", the
+     same meaning `accent` carries everywhere else; aqua means "handled without
+     asking". Dark has its own validated steps below, not a flip of these. */
+  --series-raised: #eb6834;
+  --series-silent: #15a06f;
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: #0a0b0c;
+  --surface: #131517;
+  --raised: #191b1e;
+  --ink: #e9ebed;
+  --ink-soft: #b4bac1;
+  --muted: #858c95;
+  --line: #24272c;
+  --accent: #f0a55c;
+  --accent-ink: #1a1206;
+  --accent-wash: #241a0f;
+  --calm: #74c3b0;
+  --calm-wash: #14201e;
+  --danger: #f08a8a;
+  --series-raised: #d95926;
+  --series-silent: #199e70;
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv05', 'ss01';
+}
+
+/* Tabular figures everywhere a number is compared to another number: money in a
+   column, counts in the chart, times in the trail. Proportional digits make a
+   list of amounts look ragged and subtly untrustworthy. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@keyframes qh-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: qh-rise 0.32s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes qh-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pulse {
+  animation: qh-pulse 1.6s ease-in-out infinite;
+}
+
+/* A product about not being interrupted should not itself twitch. Anyone who has
+   asked for less motion gets none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
