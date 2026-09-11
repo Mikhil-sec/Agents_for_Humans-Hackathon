@@ -74,7 +74,7 @@ Must cover, per the rules: (1) the problem, (2) who it's for, (3) why it matters
 
 > "Here's the part I actually care about.
 >
-> Week one, it asked me about nine things — it didn't know me yet. Week four: two. Meanwhile the number of things it handled on its own went from four to twenty-six.
+> Week one, it asked me about four things — it didn't know me yet. Week four: one. Meanwhile the number it handled on its own went from three a week to six.
 >
 > Every time I approve something, I can turn that into a rule. The policy engine — which is deterministic code, not a model — applies those rules on every future run. So the agent gets quieter as it earns trust.
 >

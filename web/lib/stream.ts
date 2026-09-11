@@ -9,7 +9,7 @@
  */
 
 import type { DecisionCard, Run } from '@contracts';
-import { API_BASE } from './api';
+import { API_BASE, STATIC_MODE } from './api';
 
 export interface RunProgressEvent {
   run_id: string;
@@ -39,6 +39,8 @@ export interface RunStreamHandlers {
  * is closed as soon as a terminal frame arrives.
  */
 export function followRun(runId: string, handlers: RunStreamHandlers): () => void {
+  if (STATIC_MODE) return replayRun(runId, handlers);
+
   const source = new EventSource(`${API_BASE}/api/runs/${runId}/stream`);
 
   const finish = (waiting: boolean) => (event: MessageEvent<string>) => {
@@ -63,4 +65,89 @@ export function followRun(runId: string, handlers: RunStreamHandlers): () => voi
   });
 
   return () => source.close();
+}
+
+
+// ---------------------------------------------------------------------------
+// The hosted demo
+// ---------------------------------------------------------------------------
+
+/**
+ * The five nodes the run narrates. **Mirrors `GRAPH_NODES` in
+ * `api/app/routes/runs.py`, which mirrors `docs/ARCHITECTURE.md`.**
+ *
+ * Duplicated rather than imported because the API is Python and this build has
+ * no server to ask. If the pipeline changes, both lists change — the same
+ * standing arrangement `RunProgressEvent` above already has with that module.
+ */
+const GRAPH_NODES: ReadonlyArray<readonly [string, string]> = [
+  ['ingest', 'Reading email, transactions and calendar'],
+  ['triage', 'Sorting what matters from what does not'],
+  ['analysis', 'Checking bills, renewals and price changes'],
+  ['policy', 'Applying the rules you have already granted'],
+  ['brief', 'Writing the daily brief'],
+];
+
+/** `STEP_SECONDS` in `api/app/routes/runs.py`, in milliseconds. */
+const STEP_MS = 600;
+
+/**
+ * Replay the run narration with no server.
+ *
+ * The frames, their order, their wording and their cadence are the ones the real
+ * SSE endpoint sends, so a judge watching the hosted demo sees the agentic loop
+ * announce itself exactly as it does under `make demo`. What it is *not* is an
+ * agent: no model is called and nothing is decided here. The run it narrates was
+ * already created by `triggerRun`, and the page says the hosted demo is a
+ * simulation rather than leaving that to be inferred.
+ *
+ * Returns the same unsubscribe function as the live path, and honours it — a
+ * component that unmounts mid-narration must not keep firing handlers into a
+ * dead tree.
+ */
+function replayRun(runId: string, handlers: RunStreamHandlers): () => void {
+  let cancelled = false;
+  const timers: ReturnType<typeof setTimeout>[] = [];
+
+  const at = (delay: number, fn: () => void) => {
+    timers.push(
+      setTimeout(() => {
+        if (!cancelled) fn();
+      }, delay),
+    );
+  };
+
+  GRAPH_NODES.forEach(([node, message], index) => {
+    at(index * STEP_MS, () => {
+      handlers.onProgress?.({
+        run_id: runId,
+        node,
+        message,
+        step: index + 1,
+        of: GRAPH_NODES.length,
+      });
+    });
+  });
+
+  at(GRAPH_NODES.length * STEP_MS, () => {
+    void (async () => {
+      const { staticGetRun, staticPendingFor } = await import('./staticBackend');
+      if (cancelled) return;
+      const run = staticGetRun(runId);
+      if (!run) {
+        handlers.onError?.(`no run ${runId}`);
+        return;
+      }
+      const pending = staticPendingFor(runId);
+      handlers.onFinished?.(
+        { run_id: runId, run, pending_decisions: pending },
+        run.status === 'waiting_on_user',
+      );
+    })();
+  });
+
+  return () => {
+    cancelled = true;
+    timers.forEach(clearTimeout);
+  };
 }

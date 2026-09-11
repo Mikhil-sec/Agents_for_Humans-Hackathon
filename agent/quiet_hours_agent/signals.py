@@ -15,7 +15,10 @@ for why an empty result is worse here than an exception.
 
 `_demo_signals` is Lane A's own single-day stand-in and lives here rather than in
 `/fixtures`, which belongs to Lane C. The four-week world is `replay.py`, which
-is scripted rather than read and is what the autonomy curve is measured over.
+can walk either: Lane A's scripted weeks, or four weekly windows over Lane C's
+seeded household. The window is what makes the second possible — see
+`end_of_day` for why the far edge is applied here rather than in Lane C's
+Protocol, and `replay.fixture_weeks` for how the four windows are derived.
 """
 
 from __future__ import annotations
@@ -115,6 +118,34 @@ CALENDAR_HORIZON = timedelta(days=14)
 only actionable while there is still time to confirm it."""
 
 
+def end_of_day(moment: datetime) -> datetime:
+    """The last instant of `moment`'s day, which is the run's far read edge.
+
+    **`as_of` is a day, not an instant.** Lane C ruled on this (Yorvan, 11 Sept)
+    and it is the reason this function exists rather than a bare `<= now`.
+
+    Neither `EmailProvider.fetch_since` nor `TransactionProvider.fetch_since`
+    takes an `until`, so a read is open-ended: asking Lane C's world for week 1
+    returns week 1 *and every week after it*. The replay has to isolate a past
+    week, so the far edge is applied here, in Lane A, rather than by widening a
+    frozen Protocol the day before feature freeze.
+
+    A day rather than an instant because the day is this product's unit of time
+    everywhere else — the run is daily, the digest is daily, and the four weeks
+    exist only as buckets for the autonomy chart. It also keeps the two signals
+    Lane C dated deliberately *after* midnight on the reference date, notably
+    `sig_thetimes_reminder` at 08:00, which a strict `<= now` would silently
+    drop and with it the live card a judge opening the demo is meant to find.
+
+    The honest wart, recorded rather than hidden: a run whose reference time is
+    07:00 will see an email that arrived at 08:00. Nothing in the product
+    surfaces a run's clock time, so this is invisible; an `until` parameter on
+    the Protocol is the cleaner long-term fix and is Lane C's to make after the
+    15th.
+    """
+    return moment.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+
 AS_OF_ENV = "QH_AS_OF"
 """Override for the run's reference date, as an ISO 8601 string. The escape hatch
 for driving a demo at a chosen moment without re-seeding `/fixtures`."""
@@ -183,6 +214,7 @@ def load_signals_for(
     mode: str | None = None,
     now: datetime | None = None,
     scenario: str | None = None,
+    lookback: timedelta | None = None,
 ) -> list[Signal]:
     """The day's signals for one household.
 
@@ -201,6 +233,11 @@ def load_signals_for(
         scenario: A registered scenario key. Checked *before* the providers,
             because the A6 replay is simulating four specific weeks — asking a
             live provider for them would be asking for data that does not exist.
+        lookback: How far back to read. Defaults to `LOOKBACK`, one day, because
+            the deployed run is daily. The replay widens it to a week so each
+            simulated week reads its own bucket of Lane C's world; the far edge
+            is always `end_of_day(now)`, so consecutive weeks tile rather than
+            overlap.
     """
     resolved = resolve_mode(mode)
 
@@ -216,12 +253,14 @@ def load_signals_for(
     now = resolve_now(now, bundle)
 
     if bundle is not None:
-        return _from_providers(bundle, household_id, now)
+        return _from_providers(bundle, household_id, now, lookback=lookback or LOOKBACK)
 
     return _demo_signals(household_id, now)
 
 
-def _from_providers(bundle: Any, household_id: str, now: datetime) -> list[Signal]:
+def _from_providers(
+    bundle: Any, household_id: str, now: datetime, *, lookback: timedelta = LOOKBACK
+) -> list[Signal]:
     """Everything the three read-only providers have, merged and ordered.
 
     Each provider is read independently and a failure in one does not lose the
@@ -230,25 +269,60 @@ def _from_providers(bundle: Any, household_id: str, now: datetime) -> list[Signa
     quiet day — hence the warning, and hence `sources_failed` being visible to
     the caller through the log rather than swallowed.
     """
-    since = now - LOOKBACK
+    since = now - lookback
+    until = end_of_day(now)
     signals: list[Signal] = []
 
+    # The third element is whether the source needs the far edge applied here.
+    # **Only the two backward-looking reads do.** `fetch_since` has no `until`,
+    # so it returns everything from `since` to the end of the world — see
+    # `end_of_day`. `fetch_between` already takes both edges, and its window is
+    # deliberately in the *future*: an appointment two days from now is the
+    # point of reading the calendar at all, and clamping it to end-of-today
+    # would return nothing but the appointments it is already too late to move.
     sources = (
-        ("email", lambda: bundle.email.fetch_since(household_id, since)),
-        ("transactions", lambda: bundle.transactions.fetch_since(household_id, since)),
+        ("email", lambda: bundle.email.fetch_since(household_id, since), True),
+        ("transactions", lambda: bundle.transactions.fetch_since(household_id, since), True),
         (
+            # **From the window's near edge, not from `now`.** `fetch_between`
+            # anchored at `now` can only ever return the future, so an
+            # appointment earlier the same day is invisible to a run at 10:00 —
+            # and in the replay, where a week's run is dated at the end of that
+            # week, every appointment the week contained had already happened
+            # and the calendar came back empty. That silently dropped Lane C's
+            # `dentist_clash` scenario, a CONFIRM in week 1.
+            #
+            # The daily run is barely affected: `since` is one day back, so it
+            # gains yesterday and today's earlier hours, which it should have
+            # had. The forward horizon is unchanged and is still what makes an
+            # appointment actionable while there is time to move it.
             "calendar",
-            lambda: bundle.calendar.fetch_between(household_id, now, now + CALENDAR_HORIZON),
+            lambda: bundle.calendar.fetch_between(household_id, since, now + CALENDAR_HORIZON),
+            False,
         ),
     )
 
     failed: list[str] = []
-    for label, read in sources:
+    for label, read, bounded in sources:
         try:
-            signals.extend(read() or [])
+            read_signals = read() or []
         except Exception:
             failed.append(label)
             logger.warning("could not read %s signals for %s", label, household_id, exc_info=True)
+            continue
+
+        if bounded:
+            kept = [signal for signal in read_signals if signal.occurred_at <= until]
+            if len(kept) != len(read_signals):
+                logger.debug(
+                    "%s: dropped %d signal(s) after %s",
+                    label,
+                    len(read_signals) - len(kept),
+                    until.isoformat(),
+                )
+            read_signals = kept
+
+        signals.extend(read_signals)
 
     # **Every source failing is not a quiet day.** One down is tolerable — that is
     # what the per-source catch is for. All three down is a bundle-level fault

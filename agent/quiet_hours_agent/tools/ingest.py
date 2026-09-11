@@ -45,7 +45,9 @@ def load_signals(tool_context: ToolContext) -> str:
     signals = load_signals_for(
         household_id,
         mode=state.get("provider_mode"),
+        now=state.get("now"),
         scenario=state.get("scenario"),
+        lookback=state.get("lookback"),
     )
     logger.info("load_signals household=%s count=%d", household_id, len(signals))
 

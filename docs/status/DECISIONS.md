@@ -329,3 +329,126 @@ fix: wall clock returned 0 signals, the anchored clock returns 2.
 **Affects everyone.** A defect that publishes itself as a perfect autonomy score is the
 worst kind this codebase can produce, so `export_fixtures` now refuses to write a
 fixture set generated from a run that ingested no signals.
+## 2026-09-11 — `as_of` is a day, the far edge lives in Lane A, and the replay stays scripted
+
+Two linked decisions. The first is settled and implemented; the second is a **deferral**,
+recorded because it is the opposite of what Lane A said it would do on 10 September.
+
+### 1. The read window has a far edge, and Lane A applies it
+
+**Decision:** `as_of` denotes a **day**, not an instant. Neither `EmailProvider.
+fetch_since` nor `TransactionProvider.fetch_since` gains an `until`; instead
+`signals.end_of_day()` clamps the two backward-looking reads in Lane A, and
+`load_signals_for` takes a `lookback` so a caller can name the window's width.
+
+Lane C's ruling (Yorvan, 11 Sept), taken as option (b) of the two Lane A offered.
+
+**Why a day.** The day is this product's unit of time everywhere else — the run is
+daily, the digest is daily, "Nothing needs you today" is the empty state, and the four
+weeks exist only as buckets for the autonomy chart. Nothing in the product surfaces a
+run's clock time to a user.
+
+**Why in Lane A.** `/contracts` and the provider Protocols were frozen; widening one the
+day before feature freeze is a larger blast radius than one filter in the consumer. It
+also preserves the two signals Lane C dated deliberately after midnight on the reference
+date — `sig_fitlife_renewal` and `sig_thetimes_reminder` at 08:00 — which a strict
+`<= now` would have deleted along with the pending card a judge is meant to open on.
+
+**The wart, recorded rather than hidden:** a run whose reference time is 07:00 will see
+an email that arrived at 08:00. Invisible in the product today. An `until` on the
+Protocol is the cleaner long-term fix and is Lane C's to make after the 15th.
+
+**A real bug found while doing it.** The calendar was read `fetch_between(now, now +
+CALENDAR_HORIZON)` — forward from `now` only. Anchored there it can never return
+anything from earlier the same day, so a run dated at the end of a week saw an empty
+calendar and Lane C's `dentist_clash` scenario (a CONFIRM in week 1) vanished with no
+error. The window now starts at `since`. The daily run gains yesterday and today's
+earlier hours, which it should always have had; the forward horizon is unchanged.
+
+### 2. The four-week replay stays on Lane A's scripted weeks for the submission
+
+**Decision:** the plumbing for a fixture-world replay is landed and tested —
+`replay.Week`, `replay.fixture_weeks()`, and four windows that provably tile Lane C's
+world and cover all 63 signals exactly once. **The re-key itself is deferred past the
+15th.** `replay(weeks=None)` reaches the new path; nothing on the shipped demo path does.
+
+**Why, and this is the part worth reading.** The re-key was described on both sides as
+a one-line change once `as_of` was settled. It is not. `mock_reasoning.py` is a
+*hardcoded* four-signal day — it cites `sig_gas_bill`, `sig_fitlife_charge`,
+`sig_streamly_trial`, `sig_dentist_appt` regardless of which signals were actually
+loaded. Pointing the replay at Lane C's world therefore yields four actions a week
+whatever the window contains. A faithful re-key needs a deterministic reasoner over the
+seeded world, which is new code, not a filter.
+
+**And the curve it would produce is probably worse.** Counting from
+`fixtures/scenarios.json` alone, the nine seeded scenarios fall 2 / 2 / 1 / 2 decisions
+per week with 0 / 0 / 2 / 0 handled silently — a rate of 0%, 0%, 67%, 0%. That is not a
+rising curve, and `ReplayResult.is_rising` would fail on it. It is Lane C's own §5
+argument arriving at the chart: household bills are monthly, so a merchant-scoped policy
+mostly never fires again, and there is not enough recurrence inside four weeks of one
+household to carry an autonomy curve on merchant scope alone.
+
+**What ships instead:** the scripted weeks, measured — 4 → 1 decisions, 43% → 86%
+autonomy — with `replay.render()` now stating in its own output which of the two worlds
+produced the curve rather than leaving a reader to assume.
+
+**Consequence, owned rather than glossed:** Lane C's seeded world is currently read only
+by a live agent run, not by the fixture set the demo screens are built from. That is a
+genuine incoherence and closing it is the right post-hackathon task. Doing it on freeze
+eve, against an unmeasured curve that the arithmetic says will fall, is not.
+
+**What it would take, for whoever picks it up:** a rule-based finding/action derivation
+over Lane C's signals, plus `CATEGORY` or `ACTION_KIND` policy scope doing the work that
+merchant scope cannot. Both were already on Lane C's list.
+
+## 2026-09-11 (later) — the hosted demo is a static export, not a deployment
+
+**Decision:** the live demo link is **GitHub Pages serving `web/` as a static export**,
+with the API reimplemented in the browser (`web/lib/staticBackend.ts`). Not Amplify, not
+a hosted FastAPI, and not AgentCore.
+
+**Why this and not the Amplify plan.** Diya's §5 was right that the judged path needs no
+Bedrock — but it still needed the API hosted somewhere, `QH_CORS_ORIGINS` set, and AWS
+credentials nobody on the team has been able to get working. Pages needs none of that.
+It is a push and a repo setting, it costs nothing, and it cannot break in a way that
+takes the rest of the submission with it.
+
+**How it works, in one line:** every read and write in `web/lib/api.ts` already funnels
+through a single `request()` function, so static mode is one branch there. Below it,
+`staticBackend.ts` is a port of `api/app/backends/fixtures.py` and the route modules —
+same `Page` envelope, same pagination, same error codes, same rules for expiring a card,
+learning a policy and recomputing the brief.
+
+**What actually works on the hosted page**, verified in a browser against a file server
+mimicking Pages: all four screens; answering a card, which resolves it, creates the rule
+the button previewed verbatim, writes the activity row and flips the headline to
+"Nothing needs you today"; revoking a rule; and "Check now", which replays the five
+progress frames the SSE endpoint sends, in order and at the same cadence. Zero console
+errors, no horizontal overflow at 390px, dark mode intact.
+
+**What it is not, and the page says so.** There is no agent behind it and no model. The
+banner reads *"Hosted demo — the real screens, running in your browser from a recorded
+agent run."* That is a requirement rather than a nicety: a judge is entitled to know what
+they are looking at before drawing a conclusion from it. It is also the stronger move —
+the thing being demonstrated is a policy engine that is *deliberately deterministic code*,
+which is exactly the part that loses nothing by running in a browser.
+
+**State** lives in `sessionStorage`: a reload keeps the visitor's answer, a new tab gets
+the seeded world back with its pending card. A "Start over" button restores it on demand.
+
+**Affects Lane B.** This edits `/web` — `lib/staticBackend.ts` (new), one branch each in
+`lib/api.ts` and `lib/stream.ts`, a `DemoBanner` in `AppShell.tsx`, `next.config.ts`, and
+`out/**` added to the ESLint ignores. **The default build is unchanged**: every addition
+is behind `NEXT_PUBLIC_STATIC_DEMO=1`, and `make demo` was re-run and re-verified in a
+browser afterwards, including answering a card against the real API. Mikhil authorised
+the cross-lane edit explicitly; see `docs/status/FOR_DIYA_STATIC_DEMO.md`.
+
+### AgentCore, for the record
+
+Not done, and not for want of effort. There is no AWS CLI and no credentials on the
+machine this was built on, `/infra` is Lane C's, and Bedrock still returns
+`ValidationException: Operation not allowed` for every model — so a deployed agent would
+fail its first request. The honest position for the submission is the one root
+`AGENTS.md` already takes: mock mode is the judged path, it needs no credentials, and we
+say so plainly.
+

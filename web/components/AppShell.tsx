@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getHousehold, isMajorMismatch, serverContractVersion } from '@/lib/api';
+import { STATIC_MODE, getHousehold, isMajorMismatch, serverContractVersion } from '@/lib/api';
 import { useOnline, useResource } from '@/lib/useResource';
 import { HouseholdContext } from './HouseholdContext';
 
@@ -94,6 +94,51 @@ function ContractBanner() {
   );
 }
 
+/**
+ * The hosted-demo banner. Only ever rendered by the GitHub Pages build.
+ *
+ * **This is an honesty requirement, not decoration.** The deployed site runs the
+ * real screens against a recorded agent run, with no backend and no model behind
+ * it, and a judge is entitled to know that before they draw a conclusion about
+ * what they are looking at. Saying it plainly is also the stronger move: the
+ * thing being demonstrated — a policy engine that is deterministic code — is
+ * exactly the part that loses nothing by running in a browser.
+ *
+ * It carries the reset because a visitor who has answered the card has spent the
+ * demo, and "open a new tab" is a worse answer than a button.
+ */
+function DemoBanner() {
+  if (!STATIC_MODE) return null;
+
+  async function startOver() {
+    const { resetStaticState } = await import('@/lib/staticBackend');
+    resetStaticState();
+    // A full reload rather than a router refresh: every screen reads through
+    // hooks that cached their first result, and re-seeding underneath them
+    // would leave half the app showing the answered world and half the fresh
+    // one. This runs once, on an explicit click.
+    window.location.reload();
+  }
+
+  return (
+    <div className="border-b border-line bg-raised px-5 py-2 text-sm text-ink-soft">
+      {/* The button sits in the text flow rather than pushed to the far edge:
+          floated right it wrapped onto a third line at this width and made the
+          bar taller than the header it sits above. */}
+      <p className="mx-auto max-w-3xl">
+        <span className="font-medium text-ink">Hosted demo</span> — the real screens, running in
+        your browser from a recorded agent run. Answering a card works; it is local to this tab.{' '}
+        <button
+          onClick={startOver}
+          className="underline underline-offset-2 transition-colors hover:text-ink"
+        >
+          Start over
+        </button>
+      </p>
+    </div>
+  );
+}
+
 function OfflineBanner() {
   const online = useOnline();
   if (online) return null;
@@ -112,6 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <HouseholdContext.Provider value={household.data}>
       <div className="min-h-dvh">
+        <DemoBanner />
         <ContractBanner />
         <OfflineBanner />
 

@@ -12,7 +12,10 @@ const config = [
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
-  { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts'] },
+  // `out/**` is the static export for GitHub Pages — minified build output, not
+  // source. Without it, `npm run lint` reports hundreds of warnings from bundled
+  // vendor code and buries anything real.
+  { ignores: ['.next/**', 'out/**', 'node_modules/**', 'next-env.d.ts'] },
 ];
 
 export default config;

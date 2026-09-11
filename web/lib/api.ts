@@ -29,6 +29,20 @@ export const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:80
   '',
 );
 
+/**
+ * Whether this build talks to itself instead of to an API.
+ *
+ * Set at build time for the GitHub Pages deploy, where there is no FastAPI
+ * process to reach. Read once here and nowhere else: everything in this file
+ * already funnels through `request()`, so one branch there covers every read and
+ * every write, and no component above knows or needs to.
+ *
+ * Compared against the literal `'1'` rather than coerced, so that an unset
+ * variable — which is `undefined` in the client bundle, not `''` — can never be
+ * truthy by accident and silently cut a real deployment off from its API.
+ */
+export const STATIC_MODE = process.env.NEXT_PUBLIC_STATIC_DEMO === '1';
+
 /** The version the API last answered with. Read by the mismatch banner. */
 let observedContractVersion: string | null = null;
 
@@ -57,6 +71,14 @@ interface ApiErrorBody {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC_MODE) {
+    // The hosted demo. Same paths, same payloads, same error codes — served from
+    // the bundled fixture set by `staticBackend.ts` rather than over the wire.
+    const { staticRequest } = await import('./staticBackend');
+    observedContractVersion = CONTRACT_VERSION;
+    return staticRequest<T>(path, init);
+  }
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {

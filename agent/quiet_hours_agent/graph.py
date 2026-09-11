@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -318,6 +318,8 @@ def build_graph(
     mode: str | None = None,
     session_manager: Any | None = None,
     scenario: str | None = None,
+    now: datetime | None = None,
+    lookback: timedelta | None = None,
 ) -> GraphRun:
     """Assemble the run graph.
 
@@ -338,6 +340,12 @@ def build_graph(
             signals and mock reasoning. None is the demo day. Used by the A6
             autonomy replay; it changes *what happens*, never *what is allowed* —
             the policy engine decides that from the store, every time.
+        now: The moment this run treats as "now". Omitted for a deployed run,
+            which resolves it from the provider bundle's `as_of` and then the
+            wall clock — see `signals.resolve_now`. The replay names it, so each
+            simulated week reads its own week of Lane C's world.
+        lookback: How far back this run reads. Defaults to one day, the deployed
+            cadence. The replay widens it to a week.
     """
     session_dir = Path(session_dir)
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -420,6 +428,8 @@ def build_graph(
         "run_id": run_id,
         "provider_mode": mode,
         "scenario": scenario,
+        "now": now,
+        "lookback": lookback,
         "signals": [],
     }
 

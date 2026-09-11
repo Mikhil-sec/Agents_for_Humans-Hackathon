@@ -577,4 +577,71 @@ session did):
   single-day demo and four-week replay. Until it merges from `miks-branch`, `make agent`'s
   single-day path reads real fixtures but finds nothing "today" by wall-clock time — confirmed
   above, not guessed at.
+
+---
+
+## 2026-09-11 — session with Claude Code, diagram landed + Mikhil's second letter
+
+**Done**
+
+- **Landed the architecture diagram — the hard submission requirement Mikhil flagged as the
+  single largest uncovered risk.** Moved `architecture.png` and `architecture.svg` from repo
+  root (where they'd been added untracked) to `docs/assets/architecture.png` and `.svg`. Both
+  plain filesystem moves, not `git mv`, since untracked. The PNG labels all five required
+  sections — user interface, API, the Strands agent and its loop (GraphBuilder, PolicyHook,
+  `event.interrupt()`), tools & integrations, AWS services — plus output, checked visually.
+  Updated `docs/assets/README.md`: the file table now shows both as done, and added a line
+  explaining the source-format choice — SVG rather than the draw.io/Excalidraw the doc
+  originally suggested, because it opens in any vector tool (not just draw.io), diffs as text
+  in `git diff` rather than as an opaque binary, and needs no proprietary editor for whoever
+  picks this up next.
+- **Checked every reference to the diagram in the repo; all resolve now that the file exists**
+  at the path they all already pointed to: root `README.md`, `docs/ARCHITECTURE.md`,
+  `docs/ROADMAP.md`, `docs/lanes/LANE_C_INTEGRATIONS.md`. Nothing points at a path that doesn't
+  exist. One loose end, flagged rather than fixed: root `README.md` still carries a stale
+  `<!-- TODO(Lane C): export the diagram to docs/assets/architecture.png -->` HTML comment
+  (line 69) that's no longer accurate — not a broken link, just leftover prose. Root `README.md`
+  isn't in Lane C's write scope (CODEOWNERS defaults it to Mikhil, per his own 26 Aug and 10 Sep
+  letters), so left it for him rather than editing it myself. Same reasoning for
+  `docs/SUBMISSION_CHECKLIST.md`'s architecture-diagram checkbox — now genuinely checkable, not
+  checked, since that file isn't mine either.
+- **Appended Mikhil's second letter (`FOR_YORVAN_2026-09-10.md`, added untracked at repo root)
+  to the existing `docs/status/FOR_YORVAN.md`**, under a `---` separator, rather than creating a
+  second file. Matches Yorvan's own instinct and the established append-only, chronological
+  pattern `DECISIONS.md` and the `PROGRESS_*.md` files already use in this repo — and it's the
+  only way the new letter's own framing ("reports outcomes of its decisions without restating
+  them... the original context must survive") is literally true, since a reader now gets the
+  full 28 Aug → 10 Sep correspondence in one place, in order, rather than having to reconstruct
+  it across files. Did not touch the existing 28 Aug content — appended only. Deleted the
+  now-redundant root-level `FOR_YORVAN_2026-09-10.md` after its content was copied in, the same
+  way the first letter's move worked.
+
+**The two decisions from Mikhil's letter that affect Lane C:**
+
+- **`as_of` is a day, not an instant.** Answers Mikhil's §1: `fetch_since`/`fetch_between` have
+  no far edge, so a week-1 replay read was returning every later week's signals too, and the
+  fix depends on this semantic call. Decided **day**, not instant — `sig_thetimes_reminder` is
+  deliberately dated a few hours after `DEFAULT_AS_OF` at midnight so a judge opening the demo
+  finds something waiting, and an instant-based reading would have meant moving that signal
+  earlier to survive a strict `<= now` filter, undoing the deliberate choice. With **day**,
+  Mikhil filters to end-of-day in Lane A (`signals.py`) — no `base.py` Protocol change, no
+  `until` parameter added to `fetch_since`/`fetch_between`. Matters because feature freeze is
+  12 September 09:00: a Protocol change this close to freeze would have been the riskier path
+  even if it were the "more honest" one long-term.
+- **`fixtures/scenarios.json` stays exactly where it is.** Mikhil confirmed in §3: the seeder is
+  what knows which signal ids carry which scenario, so the manifest belongs with the seeder
+  that writes it, not moved into `/agent` for his re-keying to read directly. No action needed
+  on this side — recording it so a future session doesn't second-guess the placement.
+
+**Not done**
+
+- Nothing else from this session outstanding. Both remaining Lane C items from Mikhil's
+  priority list (§6) — the deploy runbook, and the 30-second Bedrock IAM/Marketplace check from
+  §5 — are unstarted; not in scope of what was asked this session.
+
+**Blocked / needs a human**
+
+- Mikhil is waiting on the `as_of` answer above to finish his side of the replay re-key —
+  worth relaying to him directly (a one-line reply), separately from this log.
+- AWS support case 178815493800207 — status unknown as of this session; not checked.
 - AWS support case 178815493800207 — still awaiting response, unchanged.

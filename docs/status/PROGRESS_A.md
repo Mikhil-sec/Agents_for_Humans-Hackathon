@@ -1131,3 +1131,188 @@ a test — all three are Lane A defects that every test in the suite was happy w
 - The pitch and the demo still disagree about scale: `AGENTS.md` and the submission
   blurb claim ~9 decisions/week falling to ~2; the replay delivers 4 → 1. The re-key
   closes that, and it is a better argument for doing it than the autonomy percentage is.
+
+---
+
+## 2026-09-11 — the `as_of` ruling landed, both teammates' branches merged, pitch numbers corrected
+
+**Done**
+
+- **Lane C's `as_of` ruling implemented.** `signals.end_of_day()` applies the read
+  window's far edge in Lane A; `load_signals_for` and `build_graph` now take a
+  `lookback` so a caller can name the window's width. Option (b) of the two offered, as
+  Yorvan ruled on 11 Sept. No change to `integrations/base.py`.
+- **`replay.Week` and `replay.fixture_weeks()`** — four weekly windows derived from Lane
+  C's own anchor and week boundaries, which provably tile the seeded world: **all 63
+  signals, each in exactly one week, zero duplicated.** `replay()` walks either these or
+  the scripted `Scenario`s; `render()` now says which world produced the curve.
+- **A calendar bug, found on the way and fixed.** The calendar was read forward from
+  `now` only, so it could never return anything earlier the same day — and a run dated
+  at the end of a week saw an empty calendar, silently dropping Lane C's `dentist_clash`
+  CONFIRM. The window now starts at the read window's near edge.
+- **`Makefile`: dropped `QH_PROVIDER_MODE=mock` from the `api` target.** Diya's find —
+  `VAR=value` is POSIX, so `make demo` died on a native Windows shell and rendered every
+  screen's error state. Confirmed nothing in `/api` reads the variable; it switches on
+  `QH_BACKEND`, which already defaults to `fixtures`.
+- **The pitch numbers now match the data**, in all three places that carried them:
+  `README.md`, `docs/SUBMISSION_CHECKLIST.md` and `docs/DEMO_SCRIPT.md`. Was "nine
+  decisions a week to two, four to twenty-six". Now **4 → 1 decisions, a 75% drop, and
+  43% → 86% autonomy** — re-verified against a fresh `export_fixtures` run.
+- **Merged both teammates' branches into `miks-branch`** (authorised): `origin/main`
+  (Diya's favicon, Amplify build spec, two mobile defects, `estimated_annual_savings`,
+  and the gitlink removal) and `origin/c/mock-providers` (Yorvan's architecture diagram).
+  Both clean, no conflicts. **Nothing pushed; nothing on `main`.**
+- **Submission checklist:** the architecture diagram is ticked and so are three quality-
+  gate lines that were verified rather than assumed — the MIT `LICENSE`, a clean secrets
+  scan over all of `git log -p --all`, and every relative README link resolving.
+
+**Verified how**
+
+- **307 tests pass** across the three suites after both merges: 214 agent (8 new),
+  50 integrations, 43 api. `ruff check` clean.
+- The window tiling and the far edge are tested against **Lane C's real fixtures**, not
+  a fake — `agent/tests/test_read_window.py`. A fake would not tell us whether the
+  windows fit *that* world.
+- `export_fixtures` re-run end to end: reproduces 43% → 86% exactly. The regenerated
+  files were reverted afterwards — the diff was 196 insertions and 196 deletions of
+  fresh uuids and nothing else, which is pure churn in Lane C's directory.
+- The architecture diagram was opened and read before its checkbox was ticked. All five
+  required zones are present and numbered, plus a sixth for output.
+
+**Blocked / needs a human**
+
+- **Nothing in Lane A is blocked.** The `as_of` dependency on Lane C is closed.
+- **`make demo` on a native Windows shell** should be re-run by someone with `make`
+  after the fix above. Diya has the toolchain; her earlier pass was from Git Bash, which
+  is the shell that masked the bug.
+
+**Notes for the next session**
+
+- **The replay re-key is deferred past the 15th, deliberately.** It is not the one-line
+  change both lanes assumed: `mock_reasoning.py` is a hardcoded four-signal day and does
+  not read the signals that were loaded, so pointing the replay at Lane C's world yields
+  four actions a week whatever the window holds. Counted from `scenarios.json`, the
+  curve it would produce is 2/2/1/2 decisions and 0%/0%/67%/0% autonomy — falling, and
+  `is_rising` would fail on it. Full reasoning and what it would take is the
+  11 Sept section of `docs/status/DECISIONS.md`. **This is Lane C's §5 argument arriving
+  at the chart, not a new problem.**
+- `SUBMISSION_CHECKLIST.md` line 51 still lists "live demo" and AgentCore as evidence
+  under Technical Implementation. Neither is deployed. That table is the pre-submission
+  self-assessment, so it is worth a pass on the 14th rather than an edit now.
+- Lane A's exporter writes fresh uuids on every run, so re-running `make fixtures`
+  always dirties five files in Lane C's directory with no semantic change. Lane C asked
+  for deterministic ids some time ago; this is the cost of not having them.
+
+---
+
+## 2026-09-11 (later) — the hosted demo: GitHub Pages, no AWS, no credentials
+
+**Done**
+
+- **A live demo link that needs nothing from AWS.** `web/` now builds as a static export
+  and publishes to GitHub Pages via `.github/workflows/pages.yml`. The API is
+  reimplemented in the browser as `web/lib/staticBackend.ts` — a port of
+  `api/app/backends/fixtures.py` and the route layer, with the same `Page` envelope,
+  pagination, error codes and rules for expiring a card, learning a policy and
+  recomputing the brief.
+- **The interaction survives the port.** Answering a card resolves it, creates the rule
+  the button previewed verbatim, writes the activity row, and flips the headline to
+  "Nothing needs you today". "Check now" replays the five SSE progress frames from
+  `api/app/routes/runs.py` in order and at the same cadence. Revoking a rule works.
+- **The page says what it is.** A `DemoBanner`, rendered only by the static build:
+  *"Hosted demo — the real screens, running in your browser from a recorded agent run."*
+  With a "Start over" that restores the seeded world.
+- **`README.md` leads with the link** and keeps `make demo` directly under it, drawing
+  the distinction plainly: the hosted page is the screens, `make demo` is the agent.
+- **`docs/SUBMISSION_CHECKLIST.md`** records the two steps that make the link live —
+  enabling Pages with Source: GitHub Actions, and pushing `main`.
+
+**Verified how**
+
+- Built the export and served it from a plain file server **under the Pages path
+  layout**, not via `next dev` — `basePath` and trailing-slash resolution are exactly
+  what would break, and `next dev` would not show it.
+- Walked all four screens in a browser with **no API process running at all**: zero
+  console errors, no horizontal overflow at 390px, dark mode intact.
+- Captured the run narration frame by frame and confirmed all five fire in order.
+- **Re-ran the normal build and `make demo` afterwards** and answered a card against the
+  real API, confirming the rule appeared and the brief headline changed. The static
+  branch sits in `request()`, which every call goes through, so that was not left to
+  trust.
+- 307 tests still pass; `ruff check` clean; `npm test` (typecheck + lint) clean.
+
+**Blocked / needs a human**
+
+- **Mikhil: enable Pages** (Settings → Pages → Source: **GitHub Actions**) and push
+  `main`. Until then the README's demo link 404s. The workflow cannot enable Pages for
+  itself and fails with a 404 on the Pages API if it is off.
+- **AgentCore is not done and is not an effort problem.** No AWS CLI and no credentials
+  on this machine, `/infra` is Lane C's, and Bedrock still returns `ValidationException:
+  Operation not allowed` for every model — a deployed agent would fail its first
+  request. Reasoning in `docs/status/DECISIONS.md`, 11 Sept.
+
+**Notes for the next session**
+
+- **This edits `/web`, which is Lane B's**, with Mikhil's explicit authorisation. Every
+  addition is gated on `NEXT_PUBLIC_STATIC_DEMO=1` and the default build is unchanged.
+  Diya has a full account in `docs/status/FOR_DIYA_STATIC_DEMO.md`, including a request
+  that she review the diff and own it.
+- **`staticBackend.ts` is a port and can drift.** If `api/app/backends/fixtures.py` or
+  the route modules change, it changes too. The Python is the source of truth; the
+  TypeScript is wrong if they disagree. Both files say so.
+- **One open question for Diya, flagged not fixed:** the Insights tile reads "19 of 26
+  actions" while `runs.json` sums to 27 proposed. Her denominator is activity entries,
+  the runs' is proposed actions, and the pending card sits in one and not the other. Both
+  defensible; it is her page.
+- The pitch copy now matches the rendered chart rather than the per-week rates. Do not
+  reintroduce 43%/86% — those appear nowhere in the UI.
+
+---
+
+## 2026-09-11 (end of day) — submission audit, and the gaps it found
+
+Audited the repo against `SUBMISSION_CHECKLIST.md` rather than against memory. Four
+things were wrong or missing; all four are fixed.
+
+**Done**
+
+- **The README had no screenshots** — just a `TODO(Lane C)` where the hero image should
+  be, on the first screen a judge sees. Three are now in, captured from the running
+  product: the decision card with its evidence expanded, the autonomy chart, and the
+  empty inbox. `docs/assets/screenshot-*.png`.
+- **CI was masking every test failure.** `pytest ... || true` on all three suites and
+  `|| echo` on two installs, left over from the week the lane packages did not exist.
+  "`main` is green" meant nothing, and the checklist line about it could have been
+  ticked on a lie. Removed — CI is a real gate now.
+- **CI had no coverage of `/web` at all.** Added a job: typecheck, lint, and **both**
+  builds — default and static export. The Pages build can break on its own while the
+  default one stays green, and a PR should fail rather than the published site.
+- **Two checklist lines I had ticked were made stale by my own later changes.** "Every
+  README link resolves" is now unticked and says why: the live-demo link 404s until
+  Pages is on. Corrected rather than left to be discovered.
+
+**Verified how**
+
+- Screenshots taken from the running app with the Next dev-tools overlay removed from
+  the DOM first, so they show what production renders rather than a dev badge. The
+  autonomy shot was retaken after restarting the API, because the first one captured
+  post-answer state (8 rules, 19 of 27) rather than the pristine state a fresh clone
+  shows (7 rules, 19 of 26).
+- Both workflow files parse as YAML. Every relative README link and image re-checked
+  against the tree: all resolve.
+- 307 tests still pass.
+
+**Blocked / needs a human — the full remaining list**
+
+1. **Push, and enable Pages.** `origin/main` is **three merge commits and ~20 files
+   behind**. Nothing from today exists on GitHub. This is the single biggest gap: the
+   diagram, the Windows `make demo` fix, the corrected pitch numbers, the hosted demo
+   and the CI fixes are all local only.
+2. **The demo video.** Not started. `DEMO_SCRIPT.md` is corrected and can be read as
+   written.
+3. **Blog post 1** (Mikhil's). Diya's `POST_2_DIYA.md` is written; there is no post 1.
+4. **Repo description and topics** — a GitHub setting, needs `strands-agents`, `aws`,
+   `bedrock`, `agentcore`, `ai-agents`.
+5. **Clean-machine test** after the push, which is also what confirms the live link.
+6. **AWS Builder ID**, track selection, and the two disclosure lines — all form-filling
+   on the day, but they are hard requirements.

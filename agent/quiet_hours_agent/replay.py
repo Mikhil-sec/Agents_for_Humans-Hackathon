@@ -19,15 +19,22 @@ and `test_replay.py` would fail.
 
 ## What is Lane A's and what is Lane C's
 
-The four weeks below are **Lane A's own stand-in data**, in the same spirit as
-`_demo_signals` in `signals.py` and for the same reason: `/fixtures` belongs to
-Lane C, and as of 2026-08-24 `get_providers()` still raises `NotImplementedError`
-so there is nothing there to read. When Yorvan's four-week fixtures land, the
-weeks here are replaced by them — `replay()` itself does not change, because it
-only ever asks a scenario for signals.
+The four `Scenario`s below are **Lane A's own stand-in data**, in the same spirit
+as `_demo_signals` in `signals.py` and for the same reason: they were written
+while `/fixtures` was empty and `get_providers()` still raised
+`NotImplementedError`. They remain the weeks the tests measure the engine with,
+because a scenario states exactly what it expects to happen and a test can
+therefore assert that every action it described actually ran.
 
-To be explicit about what that does and does not mean: **the mechanic is real and
-the arithmetic is real; the household is invented.** The output says so.
+Since Lane C's world landed there is a second path, `fixture_weeks()`: four
+weekly windows over the seeded household in `/fixtures`, derived from Lane C's
+own anchor and covering every signal in it exactly once. `replay()` walks either
+— a `Week` carries its own window, and `render()` says which world produced the
+curve rather than leaving a reader to guess.
+
+To be explicit about what that does and does not mean on the scripted path:
+**the mechanic is real and the arithmetic is real; the household is invented.**
+The output says so.
 
 ## The shape of the four weeks
 
@@ -46,6 +53,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
@@ -66,6 +74,7 @@ from quiet_hours_contracts import (
 from .graph import build_graph, harvest, summarise_run
 from .resume import build_resume_payload, persist_decisions, was_interrupted
 from .scenarios import Act, Item, Scenario, register
+from .signals import LOOKBACK, end_of_day
 from .store import Store, new_id
 
 logger = logging.getLogger(__name__)
@@ -712,6 +721,146 @@ WEEKS: list[Scenario] = [WEEK_1, WEEK_2, WEEK_3, WEEK_4]
 
 
 # --------------------------------------------------------------------------
+# Four weeks over Lane C's seeded world
+# --------------------------------------------------------------------------
+#
+# The scripted weeks above are Lane A's stand-in, written when `/fixtures` was
+# empty. They are still what `test_replay.py` proves the policy engine with,
+# because a scenario states exactly what it expects to happen and a test can
+# therefore assert that every described action ran. But the demo now replays
+# Lane C's seeded household instead, and the difference matters: the curve a
+# judge sees is measured over the same world the decision inbox is built from,
+# rather than over a second, invented one that happens to sit beside it.
+
+
+@dataclass(frozen=True)
+class Week:
+    """One simulated week: when it runs, how far back it reads, and where from.
+
+    `scenario` set means the scripted path — the week supplies its own signals
+    and its own mock reasoning, and the read window is ignored. `scenario` None
+    means Lane C's providers, read over `[when - lookback, end_of_day(when)]`.
+    """
+
+    label: str
+    key: str
+    when: datetime
+    lookback: timedelta = LOOKBACK
+    scenario: Scenario | None = None
+
+
+def fixture_weeks(as_of: datetime | None = None) -> list[Week]:
+    """The four weekly windows that tile Lane C's seeded world.
+
+    Lane C anchors its fixtures to a reference date and lays the household's
+    history out as four Monday-to-Sunday weeks behind it, so the windows are
+    derived from that anchor rather than written down here — re-seeding with a
+    different `--as-of` moves the world and these move with it.
+
+    **The last window runs to the reference date, not to week 4's Sunday.**
+    Lane C deliberately dated two signals into the three-day tail between them,
+    `sig_fitlife_renewal` and `sig_thetimes_reminder`, so that a judge opening
+    the demo finds a card waiting rather than a tidy empty inbox. Ending the
+    fourth run at the Sunday would drop both and take the pending card with
+    them. The fourth week is therefore ten days wide rather than seven; it is
+    "the current week" in the fixture world, and the autonomy rate is a ratio,
+    so a wider bucket does not flatter it.
+
+    Together the four windows cover every dated signal exactly once: they abut
+    at Lane C's week boundaries, and the far edge is `end_of_day`, so nothing is
+    both counted in one week and re-read in the next.
+
+    Args:
+        as_of: The fixture world's reference date. Defaults to Lane C's own
+            `DEFAULT_AS_OF`, read from the integrations package so that the two
+            cannot drift apart.
+
+    Raises:
+        FixtureWorldUnavailable: Lane C's package is not importable, so there is
+            no world to replay and no honest default to invent.
+    """
+    anchor = as_of or _lane_c_as_of()
+    monday = _lane_c_week_monday
+
+    weeks: list[Week] = []
+    for number in (1, 2, 3, 4):
+        start = monday(anchor, number)
+        # Weeks 1-3 run on their own Sunday — the day before the next week
+        # starts, derived from Lane C's own boundaries rather than from a
+        # seven-day assumption here. Week 4 runs on the reference date.
+        when = anchor if number == 4 else monday(anchor, number + 1) - timedelta(days=1)
+        weeks.append(
+            Week(
+                label=f"Week {number}",
+                key=f"fixtures-week-{number}",
+                when=when,
+                # **Back to the previous window's far edge exactly**, rather
+                # than a flat seven days. Two reasons, and both are bugs if you
+                # get them wrong: week 4 is wider than seven days, so a flat
+                # seven would leave a gap in front of it and silently drop the
+                # Monday and Tuesday of the world; and a window starting at the
+                # previous Sunday's *midnight* would re-read that whole Sunday,
+                # counting its signals in two weeks and deflating the second
+                # week's autonomy rate with work the first week already did.
+                lookback=when - end_of_day(start - timedelta(days=1)),
+            )
+        )
+    return weeks
+
+
+class FixtureWorldUnavailable(RuntimeError):
+    """Lane C's integrations package could not be imported, so the seeded world
+    cannot be replayed. Mock mode falls back to the scripted weeks; nothing
+    silently replays an invented household while claiming to replay a real one."""
+
+
+def _lane_c_as_of() -> datetime:
+    try:
+        from quiet_hours_integrations.mock._fixtures import DEFAULT_AS_OF
+    except ImportError as exc:  # pragma: no cover - exercised via the fallback
+        raise FixtureWorldUnavailable(f"cannot import Lane C's fixtures: {exc}") from exc
+    return DEFAULT_AS_OF
+
+
+def _lane_c_week_monday(as_of: datetime, week: int) -> datetime:
+    try:
+        from quiet_hours_integrations.mock.seed import week_monday
+    except ImportError as exc:  # pragma: no cover - exercised via the fallback
+        raise FixtureWorldUnavailable(f"cannot import Lane C's seeder: {exc}") from exc
+    return week_monday(as_of, week)
+
+
+def default_weeks(count: int = 4) -> list[Week]:
+    """Lane C's seeded world when it is there, Lane A's scripted weeks when not.
+
+    The fallback is the same asymmetry `providers.py` documents: a mock run that
+    manages without Lane C is the demo working, which is a root `AGENTS.md`
+    rule. It is announced in the replay's own output rather than hidden, because
+    the two produce different curves and a reader is entitled to know which one
+    they are looking at.
+    """
+    try:
+        return fixture_weeks()[:count]
+    except FixtureWorldUnavailable as exc:
+        logger.warning("%s — replaying Lane A's scripted weeks instead", exc)
+        return scripted_weeks()[:count]
+
+
+def scripted_weeks(start: datetime | None = None) -> list[Week]:
+    """Lane A's four hand-written weeks, one week apart from `start`."""
+    start = start or datetime.now(UTC) - timedelta(weeks=len(WEEKS))
+    return [
+        Week(
+            label=scenario.label,
+            key=scenario.key,
+            when=start + timedelta(weeks=index),
+            scenario=scenario,
+        )
+        for index, scenario in enumerate(WEEKS)
+    ]
+
+
+# --------------------------------------------------------------------------
 # Running the replay
 # --------------------------------------------------------------------------
 
@@ -754,6 +903,11 @@ class ReplayResult:
     """The curve."""
 
     weeks: list[WeekResult] = field(default_factory=list)
+    world: str = "scripted"
+    """Which world produced it: `scripted` for Lane A's hand-written weeks,
+    `fixtures` for Lane C's seeded household. Recorded rather than inferred
+    because `render` says so in its output, and a reader is entitled to know
+    which of the two they are looking at."""
 
     @property
     def first_rate(self) -> float:
@@ -786,7 +940,7 @@ def replay(
     *,
     store: Store,
     session_dir: Path | str,
-    weeks: list[Scenario] | None = None,
+    weeks: Sequence[Week | Scenario] | None = None,
     answer: DecisionChoice = DecisionChoice.APPROVE_ALWAYS,
     start: datetime | None = None,
 ) -> ReplayResult:
@@ -805,40 +959,71 @@ def replay(
         store: Where policies accumulate between weeks. **Not reset between
             weeks** — the accumulation is the entire mechanism.
         session_dir: Where each week's Strands session is written.
-        weeks: Scenarios to walk. Defaults to the four above.
+        weeks: What to walk. `Week`s are used as given. `Scenario`s are the
+            scripted path and are spaced a week apart from `start`. Omitted
+            means the demo: Lane C's seeded world, via `default_weeks`.
         answer: What the simulated user says to every decision.
-        start: The first week's date.
+        start: The first week's date. Applies to the scripted path only - a
+            `Week` already carries its own date, and Lane C's are fixed by the
+            fixture world's anchor.
     """
-    weeks = weeks or WEEKS
-    start = start or datetime.now(UTC) - timedelta(weeks=len(weeks))
-    results = ReplayResult()
+    resolved = _resolve_weeks(weeks, start)
+    results = ReplayResult(
+        world="scripted" if any(week.scenario for week in resolved) else "fixtures"
+    )
 
-    for index, scenario in enumerate(weeks):
-        when = start + timedelta(weeks=index)
+    for week in resolved:
         results.weeks.append(
             _run_week(
-                scenario,
+                week,
                 household_id,
                 store=store,
                 session_dir=session_dir,
                 answer=answer,
-                when=when,
             )
         )
 
     return results
 
 
+def _resolve_weeks(weeks: Sequence[Week | Scenario] | None, start: datetime | None) -> list[Week]:
+    """Accept either shape and return `Week`s.
+
+    A list of `Scenario` still means the scripted path spaced a week apart from
+    `start` - that is what `test_replay.py` and every existing caller pass, and
+    changing their meaning would change what those tests prove. `None` means the
+    demo: Lane C's seeded world, dated by the world rather than by `start`.
+    """
+    if weeks is None:
+        return default_weeks()
+
+    resolved: list[Week] = []
+    origin = start or datetime.now(UTC) - timedelta(weeks=len(weeks))
+    for index, item in enumerate(weeks):
+        if isinstance(item, Week):
+            resolved.append(item)
+            continue
+        resolved.append(
+            Week(
+                label=item.label,
+                key=item.key,
+                when=origin + timedelta(weeks=index),
+                scenario=item,
+            )
+        )
+    return resolved
+
+
 def _run_week(
-    scenario: Scenario,
+    week: Week,
     household_id: str,
     *,
     store: Store,
     session_dir: Path | str,
     answer: DecisionChoice,
-    when: datetime,
 ) -> WeekResult:
     """One week: run, answer everything it asks, run the resume to completion."""
+    when = week.when
     run_id = new_id("run")
     session_id = f"qh-{household_id}-{run_id}"
     policies_before = len(store.list_policies(household_id))
@@ -856,7 +1041,11 @@ def _run_week(
             session_id=session_id,
             session_dir=session_dir,
             mode="mock",
-            scenario=scenario.key,
+            # None on the fixture path, which is what sends `load_signals_for`
+            # past the scripted branch and into Lane C's providers.
+            scenario=week.scenario.key if week.scenario else None,
+            now=when,
+            lookback=week.lookback,
         )
 
     run = build()
@@ -885,7 +1074,7 @@ def _run_week(
 
         cards = persist_decisions(result, store, session_id=session_id)
         if not cards:
-            logger.warning("%s suspended with no card to answer", scenario.label)
+            logger.warning("%s suspended with no card to answer", week.label)
             break
 
         result = run(
@@ -903,7 +1092,7 @@ def _run_week(
         )
     else:
         logger.warning(
-            "%s still suspended after %d rounds of answers", scenario.label, MAX_ANSWER_ROUNDS
+            "%s still suspended after %d rounds of answers", week.label, MAX_ANSWER_ROUNDS
         )
 
     outcome = harvest(result, run, pending_decision_ids=[])
@@ -929,8 +1118,8 @@ def _run_week(
 
     policies_after = len(store.list_policies(household_id))
     return WeekResult(
-        label=scenario.label,
-        scenario_key=scenario.key,
+        label=week.label,
+        scenario_key=week.key,
         actions_proposed=proposed,
         actions_autonomous=autonomous,
         decisions_raised=proposed - autonomous,
@@ -994,7 +1183,11 @@ def render(result: ReplayResult, *, store: Store | None = None, household_id: st
     lines.append("")
     lines.append("  Every number above was counted from the audit trail. The policy engine")
     lines.append("  decided each one; nothing here was written by a model or hardcoded.")
-    lines.append("  These four weeks are scripted scenarios, not Lane C's fixture world -")
-    lines.append("  a single day's run reads /fixtures; the curve is simulated over four.")
+    if result.world == "fixtures":
+        lines.append("  Replayed over Lane C's seeded household in /fixtures, four weekly")
+        lines.append("  windows that between them cover every signal in it exactly once.")
+    else:
+        lines.append("  These four weeks are scripted scenarios, not Lane C's fixture world -")
+        lines.append("  a single day's run reads /fixtures; the curve is simulated over four.")
     lines.append("")
     return "\n".join(lines)
