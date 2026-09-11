@@ -317,3 +317,98 @@ it was never committed.
 - Process: `14a7c52` went straight to `main` and this session's changes are sitting
   unstaged on `main` too. Mikhil has asked for `b/` branches and PRs from here —
   worth doing before the next push.
+
+---
+
+## 2026-09-11 (later) — merged Lane A and Lane C onto main
+
+**The merge**
+
+`origin/main` was still `14a7c52`. Everything that makes `make demo` work lived
+only on `origin/miks-branch` — the fixed `demo` target, the four-run `runs.json`
+with savings, the corrected brief headline, the weekly run dates. A judge cloning
+`main` got the version that prints three lines and exits.
+
+Merged `origin/miks-branch` (`73020c6`) into `main` as `1cff12a`. Clean, no
+conflicts, and it touches nothing in `/web` or `/api`. The gitlink stays removed:
+`miks-branch` still carried it, `main`'s deletion in `aebf08d` wins.
+
+**Not pushed.** `main` is 14 commits ahead of `origin/main`. Mikhil's note asked
+for `b/` branches and PRs, and this is a merge straight onto `main`; I have asked
+him to nod before it goes up rather than present it as done.
+
+**Verified after merging, from a fresh clone of the merged `main`**
+
+| Check | Result |
+|---|---|
+| `git clone` into an empty directory | no stray `Agents_for_Humans-Hackathon/` folder |
+| `make install` | works, 4m21s |
+| `make demo` | works — both servers from one command |
+| `/api/health`, `/api/brief/latest` | correct; "One thing needs you today", 1 pending |
+| `/`, `/insights`, `/favicon.ico` | 200, favicon `image/x-icon` |
+| 43 API tests against the regenerated fixtures | pass |
+| `npm run build` / `typecheck` / `lint` | clean |
+
+**Mobile — checked for the first time, two real defects, both fixed**
+
+The checklist claims mobile under Design and nobody had looked. Rendered at 390px
+under real mobile emulation (`Emulation.setDeviceMetricsOverride`), not by
+resizing a desktop window — a resized window does not apply the meta viewport and
+reports false horizontal overflow, which sent me chasing a bug that did not exist
+for ten minutes.
+
+1. **The header wordmark wrapped to two lines.** Four nav items, the theme toggle
+   and "Quiet Hours" do not fit a 390px bar. The wordmark now drops below 640px
+   and the clock mark carries the brand at that width.
+2. **The autonomy chart was illegible.** It scaled its 720-wide viewBox down to a
+   ~340px container, rendering the 11px axis labels at about 5px — the demo's
+   headline visual, unreadable on a phone. It now sits in a horizontal scroll
+   container with a minimum width, so it stays readable and scrolls rather than
+   shrinking. Desktop is unchanged, because there the container is wider than the
+   minimum.
+
+Confirmed `document.scrollWidth === innerWidth` at 390px on all four screens, so
+the page itself never scrolls sideways.
+
+**`estimated_annual_savings` — taken**
+
+Insights now reads *"£411.90 saved so far / worth £1,055.76 a year at this rate"*.
+The two numbers are kept apart deliberately: "saved" stays money that actually
+moved in the trail, and the annualised figure is labelled as a projection. Adding
+a projection into a figure labelled "saved" would have been the one dishonest
+number on the page. It reads `null` while a run's cancellation is pending, which
+is why it moves when the user answers a card — the beat Mikhil wanted for the
+video.
+
+**Handover written**
+
+`docs/status/FOR_MIKHIL_AND_YORVAN.md` — the `make demo` verdict, the Windows
+`Makefile` bug, the merge, and the five things I need from them.
+
+**The Windows `Makefile` bug, restated here so it is in my own log**
+
+`make demo` fails from `cmd.exe` or PowerShell: the `api` recipe uses POSIX
+`VAR=value command` syntax, and GNU Make on Windows uses `cmd.exe` unless `sh.exe`
+is on PATH. Web starts, API dies, every screen shows its error state. Works from
+Git Bash and on macOS/Linux. `QH_PROVIDER_MODE` is not read anywhere in `/api` —
+the API reads `QH_BACKEND`, which defaults to `fixtures` — so the fix is to delete
+the prefix. The `Makefile` is Lane A's; flagged, not changed.
+
+**Blocked / needs a human**
+
+- Mikhil to nod on the `main` merge, then it can be pushed.
+- Mikhil to drop `QH_PROVIDER_MODE=mock` from the `api` target.
+- Yorvan to host the API in fixtures mode and set `QH_CORS_ORIGINS` — that alone
+  unblocks the live demo link, with no Bedrock and no credentials in play.
+- AWS credentials for Amplify; there is no AWS CLI and no `~/.aws` on this machine.
+
+**Notes for the next session**
+
+- GNU Make 4.4.1 is now installed on this machine via
+  `winget install ezwinports.make`. `make` was absent before, which is why nobody
+  had tested `make demo`.
+- Testing Ctrl+C teardown: killing the parent process is the wrong test and gives
+  a false failure — it orphans the Next dev server on :3000. Raise a real
+  `CTRL_C_EVENT` with `GenerateConsoleCtrlEvent` against the demo's console.
+- The second `builder.aws.com` post is still unwritten and is worth +0.2. The raw
+  material is in this file.
