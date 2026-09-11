@@ -1,0 +1,46 @@
+# Amplify Hosting build spec for the decision inbox.
+#
+# This is step 7 of infra/DEPLOY.md ("Web -> Amplify"). It exists because the
+# two things Amplify's auto-detection gets wrong for this repo are both
+# load-bearing:
+#
+# 1. **The app is not at the repo root.** `appRoot: web` puts Amplify in the
+#    monorepo mode that runs every command from `web/`.
+# 2. **The build reads a file above `appRoot`.** Types come from
+#    `contracts/typescript/index.ts`, compiled through `experimental.externalDir`
+#    in `next.config.ts`. Amplify clones the whole repository, so `../contracts`
+#    is there — but only as long as nothing narrows the checkout to `web/`.
+#    Do not "optimise" this into a sparse or partial clone.
+#
+# The build needs no AWS credentials and never contacts the API: every screen
+# fetches client-side, so `next build` only prerenders shells. That matters
+# because it means the web app can be deployed and demoed while Bedrock, the
+# agent and DynamoDB are all unavailable.
+#
+# Required environment variable, set in the Amplify console (App settings ->
+# Environment variables), not here — it differs per branch:
+#
+#   NEXT_PUBLIC_API_URL   https://<the deployed API origin>, no trailing slash
+#
+# The API must allow that Amplify origin in `QH_CORS_ORIGINS`, or every screen
+# renders its error state. Set both at the same time.
+
+version: 1
+applications:
+  - appRoot: web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .next/cache/**/*
+          - node_modules/**/*

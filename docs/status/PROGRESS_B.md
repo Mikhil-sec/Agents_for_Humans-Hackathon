@@ -185,3 +185,135 @@ was broken here; all of it is addressed below.
   `Agents_for_Humans-Hackathon/` inside the working tree, sitting at the same
   commit. Nothing was written to it. Worth deleting before it gets committed by
   accident.
+
+---
+
+## 2026-09-11 — session with Claude Code
+
+Working through Mikhil's `FOR_DIYA.md` (10 September) list.
+
+**1. `make demo` from a clean clone — tested, and it works**
+
+`make` was not installed here either, so I installed GNU Make 4.4.1
+(`winget install ezwinports.make`) rather than approximating the recipes by hand.
+Fresh `git clone` into an empty directory, into a throwaway venv so the editable
+installs in my working tree were not repointed at a temp path.
+
+| Step | Result |
+|---|---|
+| `make install` | works — 4m21s (pip x4 + `npm install`, 323 packages) |
+| `make demo` | works — one command starts both, API on :8000 and web on :3000 |
+| Data behind it | 4 runs (1/8/15/22 Aug), savings populated, brief headline correct |
+| Insights chart | four evenly spaced weekly points, the 7 Sept gap is gone |
+| **One Ctrl+C stops both** | **PASS** |
+
+The Ctrl+C result is worth a word on method, because killing the parent process is
+*not* the same test and gives a false failure: on Windows it orphans the Next dev
+server holding :3000. I raised a real `CTRL_C_EVENT` with
+`GenerateConsoleCtrlEvent` against the demo's console instead, which is what the
+key actually does. Both processes exited and both ports released. Mikhil's
+`$(MAKE) -j2 api web` is correctly wired.
+
+**The one thing that is not fine: none of this is on `main`.** The fixes are on
+`origin/miks-branch` (`73020c6`). `origin/main` is still `14a7c52`, where the
+`demo` target prints four lines and exits, `runs.json` has three runs with null
+savings, and the brief says "Nothing needs you today" over a pending card. **A
+judge cloning `main` today gets the broken version.** `miks-branch` has to land on
+`main` before the 15th; that is the single highest-value thing left.
+
+**A Windows-only bug in the `api` target, found while testing**
+
+`make demo` fails from `cmd.exe` or PowerShell — the web app starts, the API dies
+immediately, and every screen renders its error state:
+
+```
+cd api && QH_PROVIDER_MODE=mock uvicorn main:app --reload --port 8000
+'QH_PROVIDER_MODE' is not recognized as an internal or external command
+```
+
+`VAR=value command` is POSIX syntax. GNU Make on Windows uses `cmd.exe` as its
+shell unless `sh.exe` is on PATH, so it works from Git Bash (how I tested it, and
+how it behaves on macOS and Linux) and fails from a native Windows shell.
+
+The fix is a deletion, not a rewrite: **`QH_PROVIDER_MODE` is not read anywhere in
+`/api`** — I grepped. The API reads `QH_BACKEND`, which already defaults to
+`fixtures`. Dropping the prefix from the `api` target makes it portable and
+changes nothing functionally. The `Makefile` is Lane A's, so this is a request,
+not a change I have made.
+
+**2. The gitlink — done**
+
+`git rm --cached Agents_for_Humans-Hackathon` (staged, not committed — the humans
+do the git here). I also deleted the physical duplicate clone after checking it
+was safe: clean status, no stash, no unpushed commits, sitting on `1f8acff`, which
+is an ancestor of `main`. Nothing unique was in it.
+
+**3. The favicon — done**
+
+`web/app/favicon.ico` and `web/app/apple-icon.png`, generated from the clock mark
+in the header so the tab matches the product. Multi-resolution ICO (16 through
+256); the 16px frame is drawn with a heavier ring and a larger face, because the
+hairline version turns to grey mush at that size.
+
+A dark tile with a white glyph rather than a transparent dark stroke — a favicon
+sits on whatever chrome the browser gives it, and dark-on-transparent vanishes
+against a dark tab strip. The accent colour is deliberately **not** used: it stays
+reserved for "this needs you" inside the product.
+
+Verified with the Playwright MCP server (it connects again this session):
+`/favicon.ico` returns 200 `image/x-icon`, Next injects the `<link rel="icon">`,
+and `/` and `/insights` now report **zero console errors**.
+
+**4. Amplify — prepared, not deployed, and I did not sink a day in it**
+
+I cannot deploy: there is no AWS CLI on this machine, no `~/.aws`, and no `AWS_*`
+in the environment. So the deploy itself is blocked on whoever holds credentials.
+
+What I did instead, in-lane and small: `web/amplify.yml`, the build spec for step 7
+of `infra/DEPLOY.md`, plus a "Deploying" section in `web/README.md` with the exact
+console settings. It encodes the two things Amplify's auto-detection gets wrong
+here — the app is not at the repo root (`appRoot: web`), and the build reads
+`contracts/typescript/index.ts` from *above* `appRoot` via
+`experimental.externalDir`, so the checkout must not be narrowed to `web/`.
+
+**One correction to the assumption in `FOR_DIYA.md`, and it is good news.** The
+note says a deployed app would have no working agent behind it, so it is not worth
+much. That is true of the *live* path, but the judged path is mock mode, and mock
+mode needs no Bedrock at all: `QH_BACKEND=fixtures` needs zero credentials, and the
+web build never contacts the API — I verified this by stopping the API and running
+`npm run build`, which succeeded. So a live demo link showing exactly what
+`make demo` shows is achievable **while Bedrock is still broken**. It needs the API
+hosted somewhere (step 4, `/infra`, Lane C) and `QH_CORS_ORIGINS` widened to the
+Amplify origin. Worth ten minutes of Yorvan's time, not a day of anyone's.
+
+**Also cleaned up**
+
+`web/app/layout.js` — an untracked `create-next-app` default root layout
+(`title: 'Next.js'`) sitting next to our real `layout.tsx`. Deleted. Two root
+layouts in one App Router segment is at best ambiguous and at worst a build error;
+it was never committed.
+
+**Verified this session**
+
+- `pytest -q` in `/api`: 43 passed. `ruff check api`: clean.
+- `npm run typecheck`, `npm run lint`: clean. `npm run build`: clean, and clean
+  again with the API stopped.
+- Playwright MCP: `/` and `/insights` render with zero console errors.
+- `make install` and `make demo` from a genuine clean clone of `miks-branch`.
+
+**Not verified**
+
+- The Amplify build spec has never been run by Amplify. It is a careful reading of
+  the monorepo docs plus the constraints of this repo, not a tested deploy.
+- The `live` DynamoDB backend still has never touched real AWS.
+
+**Blocked / needs a human**
+
+- **Merge `miks-branch` into `main`.** Everything above that makes `make demo`
+  work lives only on that branch. This is the one that would actually cost us.
+- **The `api` target's `QH_PROVIDER_MODE=mock` prefix** breaks `make demo` on
+  native Windows shells. One-word deletion, Lane A's file.
+- **AWS credentials** for the Amplify deploy, and Lane C's step 4 to host the API.
+- Process: `14a7c52` went straight to `main` and this session's changes are sitting
+  unstaged on `main` too. Mikhil has asked for `b/` branches and PRs from here —
+  worth doing before the next push.
