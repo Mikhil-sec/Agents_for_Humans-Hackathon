@@ -84,8 +84,29 @@ npm run build          # production build
 npm test               # typecheck + lint (there are no unit tests yet)
 ```
 
+## Deploying
+
+`amplify.yml` here is the build spec for step 7 of `infra/DEPLOY.md`. Read its
+header before changing it — it encodes two things Amplify's auto-detection gets
+wrong for this repo.
+
+In the Amplify console, connect the repository and then:
+
+1. Set the app root to `web` (monorepo). The spec's `appRoot` does this, but the
+   console asks as well.
+2. Set `NEXT_PUBLIC_API_URL` to the deployed API origin, no trailing slash.
+3. Add that Amplify origin to the API's `QH_CORS_ORIGINS`. Both, or every screen
+   renders its error state.
+
+**The build needs no AWS credentials and never contacts the API** — verified by
+building with the API stopped. Every screen fetches client-side, so `next build`
+only prerenders shells. The web app can therefore go live while Bedrock, the
+agent and DynamoDB are all unavailable; it just needs an API origin to point at,
+and an API in `QH_BACKEND=fixtures` needs no credentials either.
+
 ## Not done yet
 
 - No component or end-to-end test suite. The screens have been driven manually in
   a real browser; that is not a substitute.
-- No deploy. Amplify hosting lives in `/infra`, which is Lane C's.
+- **Not deployed.** The build spec is ready, but nobody has run it: hosting the
+  API is step 4 of `infra/DEPLOY.md` and `/infra` is Lane C's.

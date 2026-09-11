@@ -158,10 +158,15 @@ export function AutonomyChart({ weeks }: { weeks: WeekPoint[] }) {
       {table ? (
         <ChartTable weeks={weeks} />
       ) : (
-        <div className="relative">
+        // The viewBox is 720 wide. Left to scale freely it shrinks to the
+        // container, which on a 390px phone renders the 11px axis labels at
+        // about 5px - the headline visual, illegible. A min-width plus
+        // horizontal scroll keeps it readable and costs nothing on desktop,
+        // where the container is wider than the minimum.
+        <div className="relative -mx-1 overflow-x-auto px-1">
           <svg
             viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            className="h-auto w-full"
+            className="h-auto w-full min-w-[600px]"
             role="img"
             aria-label={`Decisions raised fell from ${first.raised} to ${last.raised} while actions handled silently went from ${first.silent} to ${last.silent}.`}
             onPointerMove={locate}
