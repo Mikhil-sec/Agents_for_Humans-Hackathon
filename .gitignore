@@ -43,3 +43,10 @@ Thumbs.db
 # Playwright MCP writes screenshots, snapshots and console logs here when an
 # agent drives the app. Never part of the build.
 .playwright-mcp/
+
+# setuptools build artefacts. `pip install ./contracts/python` (which CI and
+# `make install` both run) writes contracts/python/build/, and it landed in a
+# commit on 2026-09-12 because of a `git add -A`. /contracts is frozen, so junk
+# appearing under it is worse than junk elsewhere.
+build/
+*.egg-info/
