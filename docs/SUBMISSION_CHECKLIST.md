@@ -8,7 +8,9 @@ Every line is a literal requirement from the rules. A submission that fails one 
 
 ## Hard requirements
 
-- [ ] **Public code repository URL** (GitHub) — open it in an incognito window to confirm it is genuinely public
+- [x] **Public code repository URL** (GitHub) — `https://github.com/Mikhil-sec/Agents_for_Humans-Hackathon`
+      returns 200 to an unauthenticated request, checked 11 Sept. Still worth the
+      incognito look on the day.
 - [x] **MIT or Apache licence file** in the repo — `LICENSE`, MIT, committed
 - [ ] **Licence visible in the GitHub About section** — GitHub must detect it. Check the right-hand sidebar of the repo page says "MIT license". If it does not, the `LICENSE` file is malformed or misnamed.
 - [ ] **README** with setup instructions
@@ -46,10 +48,13 @@ Every line is a literal requirement from the rules. A submission that fails one 
 ## Quality gate — do this before submitting
 
 - [ ] **Clean-machine test**: clone the public repo into a fresh directory on a machine that has never run this project, follow the README exactly, confirm `make demo` works. Ideally on a different OS to the one it was built on.
-- [ ] `make test` passes on `main` — 307 pass locally (214 agent + 43 api + 50
-      integrations) and `web` typechecks and lints clean. CI enforces this properly as
-      of 11 Sept: the `|| true` that made every test failure invisible is gone, and a
-      `web` job now builds **both** the default and static-export configurations.
+- [x] `make test` passes on `main` — **green on GitHub, and for the first time that
+      means something.** All three CI jobs pass on `main` as of 12 Sept: Python
+      (307 tests — 214 agent + 43 api + 50 integrations), Guardrails, and Web
+      (typecheck, lint, and **both** the default and static-export builds).
+      Earlier greens were `pytest ... || true` reporting success unconditionally;
+      that mask is gone, and its first honest run caught a real unpinned-dependency
+      break. See `docs/status/DECISIONS.md`, 12 Sept.
 - [x] No secrets, tokens, keys or `.env` files committed — scanned all of `git log -p --all`, 11 Sept: clean. Only `.env.example` files are tracked (`agent/`, `api/`, `web/`).
 - [ ] Every link in the README resolves — every **relative** link and image verified
       against the tree, 11 Sept: all resolve, and the screenshot placeholder is gone.
@@ -59,7 +64,9 @@ Every line is a literal requirement from the rules. A submission that fails one 
 - [x] The architecture diagram image actually renders on the GitHub page — the file is committed at the path every reference already used
 - [ ] Live demo URL loads for a logged-out stranger
 - [ ] Repo has a description and topics set (`strands-agents`, `aws`, `bedrock`, `agentcore`, `ai-agents`)
-- [ ] `main` is green and nothing is left on an unmerged branch
+- [x] `main` is green and nothing is left on an unmerged branch — `origin/miks-branch`
+      and `origin/c/mock-providers` are both fully merged into `main` with a zero diff,
+      and all three CI jobs pass. 12 Sept.
 
 ## Judging criteria — a final honest self-assessment
 
