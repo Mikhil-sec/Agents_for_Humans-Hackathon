@@ -142,14 +142,45 @@ def main() -> int:
             "persisted interrupt_state contains this interrupt id",
         )
         check(
-            "tool_use_message" in interrupt_state.get("context", {}),
-            "persisted context carries the pending tool_use_message",
+            _pending_tool_use_is_persisted(interrupt_state),
+            "persisted state carries the pending tool_use message",
         )
 
     log_side_effect("PROCESS 1 exit (suspended at interrupt)")
 
     print(f"\n  {len(failures)} failure(s) in process 1")
     return 1 if failures else 0
+
+
+def _pending_tool_use_is_persisted(interrupt_state: dict) -> bool:
+    """Is the half-finished tool call on disk, under whichever key this SDK uses?
+
+    **This is the assertion that matters most in the whole spike.** The interrupt
+    id surviving proves the run knows it was asked something; this proves the run
+    knows *what it was about to do*. Without it the resumed process would come
+    back with an answer and nothing to apply it to.
+
+    Strands moved it between minor versions and both shapes are accepted here,
+    because the guarantee we depend on is the same in both and pinning the guard
+    to one spelling turns an SDK rename into a red build that says nothing:
+
+    * **<= 1.54** — `interrupt_state["context"]["tool_use_message"]`
+    * **>= 1.55** — `interrupt_state["pending_tool_execution"]["assistant_message"]`,
+      with `completed_tool_results` beside it
+
+    Verified against 1.53.0 and 1.55.1 on 2026-09-11. The *behaviour* is checked
+    for real by `step2_resume`, which resumes in a second process and proves the
+    tool ran exactly once and only after the answer — so if a future version
+    renames this again, that test still holds the line and this one only needs a
+    third spelling.
+    """
+    context = interrupt_state.get("context") or {}
+    if "tool_use_message" in context:
+        return True
+
+    pending = interrupt_state.get("pending_tool_execution") or {}
+    message = pending.get("assistant_message") or {}
+    return any("toolUse" in block for block in message.get("content", []))
 
 
 if __name__ == "__main__":

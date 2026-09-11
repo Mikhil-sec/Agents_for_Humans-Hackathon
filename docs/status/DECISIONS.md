@@ -452,3 +452,40 @@ fail its first request. The honest position for the submission is the one root
 `AGENTS.md` already takes: mock mode is the judged path, it needs no credentials, and we
 say so plainly.
 
+## 2026-09-12 — strands-agents is pinned, and why CI was lying to us
+
+**Found by removing `|| true` from CI**, within an hour of doing it. Worth writing down
+because the failure was invisible for weeks and the cause is not what it looked like.
+
+**Symptom.** `agent/tests/test_a1_interrupt_spike.py` failed in CI on both branches while
+passing on every developer machine.
+
+**Cause.** `agent/pyproject.toml` said `strands-agents>=1.42` with no upper bound, so a
+clean install took the newest release — 1.55.1 — while everyone locally had the 1.53.0
+they had installed weeks earlier. **1.55 moved the persisted half-finished tool call**,
+from `interrupt_state["context"]["tool_use_message"]` to
+`interrupt_state["pending_tool_execution"]["assistant_message"]` (with
+`completed_tool_results` beside it). The spike's white-box probe read the old key.
+
+**The mechanic was never broken, and that was checked rather than assumed.** On 1.55.1,
+running the spike across two real processes: the run suspends, process 1 exits without
+executing, process 2 resumes with the answer, the tool runs **exactly once**, and the
+tool result carries the real cancellation. The interrupt id and `activated` flag both
+persist correctly. Only the key name changed.
+
+**Two fixes, doing different jobs:**
+
+1. **The probe accepts both spellings**, so the guard survives the rename and still
+   means something. 307 tests now pass on 1.53.0 *and* on 1.55.1.
+2. **`strands-agents>=1.53,<1.56`.** Not needed to make the suite pass — it is there so
+   `make install` on a judge's machine resolves to a version we have actually run,
+   rather than to whatever ships before the 15th. The behaviour this whole project rests
+   on lives in exactly the part of the SDK that moved. Widen it after the hackathon.
+
+**The general lesson, which is the reason this is in DECISIONS rather than PROGRESS:**
+CI had `pytest ... || true` on all three suites since the repo was scaffolded. It
+reported success no matter what failed, so an unpinned dependency could silently break
+the core mechanic's regression guard and nobody would know. A green tick that cannot go
+red is worse than no CI, because people trust it. It is a real gate now, and it found
+something in its first run.
+

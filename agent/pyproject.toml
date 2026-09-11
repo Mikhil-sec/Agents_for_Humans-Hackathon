@@ -6,7 +6,24 @@ requires-python = ">=3.11"
 dependencies = [
     "quiet-hours-contracts",
     "quiet-hours-integrations",
-    "strands-agents>=1.42",
+    # **Upper bound is deliberate, and dated.** This was `>=1.42`, so a clean
+    # install took whatever was newest — which on 2026-09-11 was 1.55.1, and the
+    # A1 interrupt spike went red in CI while every developer machine stayed
+    # green on the 1.53.0 they had installed weeks earlier.
+    #
+    # The mechanic itself was fine: 1.55 moved the half-finished tool call from
+    # `interrupt_state["context"]["tool_use_message"]` to
+    # `interrupt_state["pending_tool_execution"]["assistant_message"]`, and the
+    # spike's probe read the old key. That probe now accepts both spellings, so
+    # this pin is not what makes the suite pass — 307 tests pass on 1.53.0 and on
+    # 1.55.1 alike.
+    #
+    # It is here so that `make install` on a judge's machine resolves to a
+    # version we have actually run, rather than to whatever ships between now and
+    # the 15th. The interrupt-and-resume behaviour this project is built on lives
+    # in exactly the part of the SDK that moved. Widen it after the hackathon,
+    # once there is time to re-verify against a newer release.
+    "strands-agents>=1.53,<1.56",
     "strands-agents-tools",
     "bedrock-agentcore",
     "boto3>=1.34",
