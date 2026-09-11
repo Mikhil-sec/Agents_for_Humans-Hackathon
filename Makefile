@@ -68,8 +68,19 @@ agent-serve:
 replay:
 	cd agent && QH_PROVIDER_MODE=mock python -m quiet_hours_agent.local_run --replay-weeks 4
 
+# **No `VAR=value` prefix here, deliberately.** That is POSIX syntax, and GNU
+# Make on Windows uses cmd.exe as its shell unless sh.exe is on PATH — so this
+# target worked from Git Bash, macOS and Linux, and on a native Windows shell
+# died with "'QH_PROVIDER_MODE' is not recognized", taking `make demo` with it
+# and rendering every screen's error state. Found by Diya, 11 Sept.
+#
+# The fix is a deletion rather than a rewrite because nothing in /api reads
+# QH_PROVIDER_MODE. The API's switch is QH_BACKEND, which already defaults to
+# `fixtures` in api/app/config.py, so mock mode is what an unset environment
+# gets. The other targets below keep the prefix: they are Lane A entry points
+# that genuinely read it, and `make agent` is not on the judge's path.
 api:
-	cd api && QH_PROVIDER_MODE=mock uvicorn main:app --reload --port 8000
+	cd api && uvicorn main:app --reload --port 8000
 
 web:
 	cd web && npm run dev

@@ -6,8 +6,10 @@ Built with the [Strands Agents SDK](https://strandsagents.com) for the AWS *Agen
 
 > Most agents ask you about everything. Quiet Hours earns the right to stop asking.
 
-<!-- TODO(Lane C): screenshot of the empty Today screen goes here. It is the best
-     single image of this product. -->
+![The decision inbox: one card asking whether to cancel an unused subscription, showing the evidence behind it and the rule that approving would create](docs/assets/screenshot-decision-card.png)
+
+*One card, because one thing needed a person. Everything under it was handled without
+asking — and every line of it is in the trail, with the reasoning that produced it.*
 
 ---
 
@@ -39,13 +41,39 @@ Quiet Hours has no app to open. It wakes on a schedule, reads what came in, and 
 
 Approving an action can create a policy — and the card shows you the rule in plain English *before* you grant it: *"This will also mean: always auto-pay British Gas under £150."* The policy engine then handles that class of action silently on every future run.
 
-Over four weeks the agent's interrupt rate falls from about **nine decisions a week to two**, while the number of things it handles on its own rises from four to twenty-six.
+Over four weeks the agent's interrupt rate falls from **four decisions in week one to one in week four** — 75% fewer interruptions — while the number it handles on its own rises from **three a week to six**.
 
 Every policy is listed, counted, and revocable in one click. And some things — disputing a charge, closing an account — **no policy can ever auto-approve**. That's enforced in code, not in a prompt.
 
-## Try it in 90 seconds
+![The autonomy chart: decisions raised falling from four to one over four weeks while actions handled silently rise from three to six](docs/assets/screenshot-autonomy.png)
 
-Mock mode runs the complete product with **no AWS account and no credentials**, against a seeded four-week household history.
+*Both lines are counted from the audit trail of four real runs, not authored. The line is
+not meant to reach zero — an agent that stopped asking entirely would have stopped being
+trustworthy.*
+
+### And on a good day, this
+
+![The empty inbox: "Nothing needs you today", with a note that Quiet Hours is watching bills, renewals and appointments](docs/assets/screenshot-empty-inbox.png)
+
+*The empty state is the goal, not a failure. It is the screen this whole product is
+trying to earn.*
+
+## Try it now, without installing anything
+
+**[mikhil-sec.github.io/Agents_for_Humans-Hackathon](https://mikhil-sec.github.io/Agents_for_Humans-Hackathon/)**
+
+The real screens, running entirely in your browser against a recorded agent run — no
+backend, no account, nothing to install. Answering a card works: it leaves the inbox,
+creates the rule the button previewed, and moves the autonomy chart. Your answers are
+local to your tab and reset when you close it.
+
+What it is not is the agent. The loop that produced that data — interrupt, suspend,
+resume, learn — needs a process, and that is what `make demo` below runs.
+
+## Or run the whole thing in 90 seconds
+
+Mock mode runs the complete product, agent included, with **no AWS account and no
+credentials**, against a seeded four-week household history.
 
 ```bash
 git clone https://github.com/Mikhil-sec/Agents_for_Humans-Hackathon.git
@@ -60,13 +88,14 @@ Then open <http://localhost:3000>, and in a second terminal:
 make agent          # trigger a run
 ```
 
-**Live demo:** <!-- TODO(Lane B): URL here once Amplify is up -->
-
 ## Architecture
 
 ![Architecture](docs/assets/architecture.png)
 
-<!-- TODO(Lane C): export the diagram to docs/assets/architecture.png -->
+Solid boxes run today from a clean clone with no credentials. Dashed boxes are
+built but not yet deployed. The source is
+[`architecture.svg`](docs/assets/architecture.svg) — editable in any vector tool
+and diffable in git.
 
 Full walkthrough: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 

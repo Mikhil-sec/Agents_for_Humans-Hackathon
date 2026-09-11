@@ -15,13 +15,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      # No `|| echo` fallbacks any more. Those were scaffolding from the week the
+      # lane packages did not exist yet; all four install cleanly now, and a
+      # swallowed install failure means every test below silently tests nothing.
       - name: Install
         run: |
           python -m pip install --upgrade pip
           pip install ./contracts/python
           pip install -e ./integrations
-          pip install -e "./agent[dev]" || echo "agent deps not ready yet"
-          pip install -e "./api[dev]" || echo "api deps not ready yet"
+          pip install -e "./agent[dev]"
+          pip install -e "./api[dev]"
           pip install ruff pytest
 
       - name: Lint
@@ -30,11 +33,54 @@ jobs:
       - name: Contracts import cleanly
         run: python -c "import quiet_hours_contracts as c; print('contract', c.CONTRACT_VERSION)"
 
+      # **`|| true` removed deliberately.** With it, CI reported success no matter
+      # what failed, so "main is green" was worth nothing and the submission
+      # checklist's `make test` line could be ticked on a lie. All three suites
+      # pass (214 + 43 + 50 = 307 as of 11 Sept); if one breaks, this must say so.
+      #
+      # Run separately because `agent/tests` and `integrations/tests` are both
+      # packages named `tests`: one pytest invocation over both fails collection
+      # with a ModuleNotFoundError that looks like a real failure and is not.
       - name: Test
         run: |
-          pytest agent/tests -q || true
-          pytest api/tests -q || true
-          pytest integrations/tests -q || true
+          pytest agent/tests -q
+          pytest api/tests -q
+          pytest integrations/tests -q
+
+  web:
+    name: Web (typecheck, lint, both builds)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck and lint
+        working-directory: web
+        run: npm test
+
+      # **Both builds, because they are different builds.** The static export is
+      # what GitHub Pages serves and it can break on its own — an `output: export`
+      # violation, or a page that stops being client-rendered — while the default
+      # build stays green. Catching that here rather than in the Pages workflow
+      # means a PR fails, not the published site.
+      - name: Build (default)
+        working-directory: web
+        run: npm run build
+
+      - name: Build (static export)
+        working-directory: web
+        env:
+          NEXT_PUBLIC_STATIC_DEMO: '1'
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build
 
   guardrails:
     name: Guardrails
