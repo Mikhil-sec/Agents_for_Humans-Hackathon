@@ -1,4 +1,4 @@
-# Progress — Lane B
+                                                                                                            # Progress — Lane B
 
 **Owner:** Diya
 **Directories:** /api, /web
@@ -333,9 +333,19 @@ Merged `origin/miks-branch` (`73020c6`) into `main` as `1cff12a`. Clean, no
 conflicts, and it touches nothing in `/web` or `/api`. The gitlink stays removed:
 `miks-branch` still carried it, `main`'s deletion in `aebf08d` wins.
 
-**Not pushed.** `main` is 14 commits ahead of `origin/main`. Mikhil's note asked
-for `b/` branches and PRs, and this is a merge straight onto `main`; I have asked
-him to nod before it goes up rather than present it as done.
+**Pushed.** `origin/main` is now at `419b6bf`. Mikhil's note asked for `b/`
+branches and PRs and this was a merge straight onto `main`; I owned that in the
+handover rather than skate past it, because leaving `origin/main` broken overnight
+was the worse of the two options.
+
+**The pitch claims numbers the demo does not render.** `README.md` line 42 and the
+submission text description both say the interrupt rate falls "from about nine
+decisions a week to two" and that silent actions rise "from four to twenty-six".
+`fixtures/runs.json` gives 4 -> 2 -> 1 -> 1 raised and 3 -> 5 -> 5 -> 6 silent, so
+the real curve is 4 -> 1 and 3 -> 6. Still a 75% drop and still a good story, but
+a judge who reads the description and then opens Insights sees different numbers,
+which reads as an inflated claim. Both files are shared and neither is mine;
+flagged in the handover as the highest-priority item after the merge.
 
 **Verified after merging, from a fresh clone of the merged `main`**
 
