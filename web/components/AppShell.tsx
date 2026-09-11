@@ -136,7 +136,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="text-ink"
                 />
               </svg>
-              <span className="text-[15px] font-semibold tracking-tight">Quiet Hours</span>
+              {/* The wordmark drops below 640px: four nav items, the theme
+                  toggle and "Quiet Hours" do not fit on a 390px header, and the
+                  wordmark wrapping to two lines makes the whole bar look
+                  broken. The clock mark carries the brand at that width. */}
+              <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">
+                Quiet Hours
+              </span>
             </Link>
 
             <nav className="flex items-center gap-0.5">

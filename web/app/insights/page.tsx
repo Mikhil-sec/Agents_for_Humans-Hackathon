@@ -39,11 +39,22 @@ export default function InsightsPage() {
   const silent = entries.filter((entry) => entry.was_autonomous);
   const rate = entries.length > 0 ? silent.length / entries.length : null;
 
-  // Impact is realised money from the trail. `estimated_annual_savings` on a run
-  // is a projection, and mixing a projection into a figure labelled "saved"
-  // would be the one dishonest number on the page.
+  // Two different numbers, kept apart on purpose.
+  //
+  // `saved` is money that has actually moved: the impact recorded against each
+  // autonomous action in the trail. `annualised` is the agent's projection of
+  // what this year's actions are worth over twelve months. Adding a projection
+  // into a figure labelled "saved" would be the one dishonest number on the
+  // page, so the headline stays realised and the projection is labelled as a
+  // rate underneath it.
+  //
+  // A run reports `null` estimated savings while its cancellation is still
+  // pending, which is why this figure moves when the user answers a card.
   const saved: Money | null =
     totalMinor(silent.map((entry) => entry.impact)) ?? brief.data?.savings_this_month ?? null;
+  const annualised: Money | null = totalMinor(
+    (runs.data?.items ?? []).map((run) => run.stats.estimated_annual_savings),
+  );
 
   const firstWeek = weeks[0];
   const lastWeek = weeks[weeks.length - 1];
@@ -83,7 +94,11 @@ export default function InsightsPage() {
             <Stat
               label="Saved so far"
               value={saved ? formatMoney(saved) : '—'}
-              detail="across every action in the trail"
+              detail={
+                annualised
+                  ? `worth ${formatMoney(annualised)} a year at this rate`
+                  : 'across every action in the trail'
+              }
               loading={loading}
               tone="calm"
             />
