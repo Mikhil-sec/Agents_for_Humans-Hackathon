@@ -17,14 +17,19 @@ name: Pages
 on:
   push:
     branches: [main]
-    # Only rebuild when something the site is actually made of changes. The
-    # fixture set is in this list because it *is* the site's data.
-    paths:
-      - 'web/**'
-      - 'fixtures/**'
-      - 'contracts/typescript/**'
-      - '.github/workflows/pages.yml'
-  # So the site can be republished without an empty commit.
+    # **No `paths:` filter, deliberately.** There was one — web/**, fixtures/**,
+    # contracts/typescript/** — and on 11 September it did exactly the damage
+    # that kind of optimisation does. Pages was switched to "GitHub Actions"
+    # *after* the last push that matched it, so this workflow simply never ran
+    # again, and the site kept serving a stale build from the old branch-based
+    # Jekyll pipeline: the README rendered as a web page, which looks like a
+    # broken deploy and is actually a workflow that was never asked to start.
+    #
+    # A filter also goes quietly stale the moment the site starts depending on a
+    # directory nobody remembered to add. The build is a couple of minutes and
+    # the deadline is the 15th; republishing on every push to main is the cheaper
+    # mistake by a wide margin.
+  # So the site can be republished from the Actions tab without an empty commit.
   workflow_dispatch:
 
 # Read the repo, and mint the token the deploy step exchanges for Pages access.
