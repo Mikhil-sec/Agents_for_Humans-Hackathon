@@ -1,11 +1,11 @@
 [
   {
-    "decision_id": "dec_cf0d3bf7ffe451a9ac530f73",
+    "decision_id": "dec_e119e0702ffa5f2f9072cd58",
     "household_id": "hh_demo",
-    "run_id": "run_f7304a60f0534f5e85bd4834",
-    "action_id": "act_f7a0d5e34339498bb588204c",
-    "session_id": "qh-hh_demo-run_f7304a60f0534f5e85bd4834",
-    "interrupt_id": "v1:before_tool_call:tooluse_qh_28d203f9_0:e15fdd1e-9c42-512b-934f-1f5630eb1c09",
+    "run_id": "run_8d331fa317254f7e8d7933c1",
+    "action_id": "act_efa391eb15c2498bb87f0ada",
+    "session_id": "qh-hh_demo-run_8d331fa317254f7e8d7933c1",
+    "interrupt_id": "v1:before_tool_call:tooluse_qh_0b796be9_0:e15fdd1e-9c42-512b-934f-1f5630eb1c09",
     "interrupt_name": "qh-approval",
     "headline": "Cancel subscription — PhotoCloud",
     "body": "Nothing has been uploaded to it in four months.",
@@ -43,14 +43,14 @@
     },
     "evidence": [
       {
-        "signal_id": "unbacked",
-        "excerpt": "Tool call cancel_subscription with ['merchant', 'monthly_amount_minor', 'rationale', 'reason']",
+        "signal_id": "w4_photocloud",
+        "excerpt": "Monthly charge of GBP 4.99. First charge after a 12-month free period.",
         "source_ref": null
       }
     ],
     "status": "pending",
     "urgency_deadline": null,
-    "created_at": "2026-08-24T19:29:11.208978Z",
+    "created_at": "2026-09-10T06:29:23.721535Z",
     "resolved_at": null
   }
 ]

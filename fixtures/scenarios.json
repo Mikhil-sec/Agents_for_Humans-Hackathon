@@ -1,0 +1,109 @@
+{
+  "aviva_renewal_quote": {
+    "action_kind": "draft_email",
+    "expected_outcome": "auto",
+    "finding_kind": "renewal_upcoming",
+    "note": "22% above last year's premium.",
+    "risk_tier": "notify",
+    "signal_ids": [
+      "sig_aviva_quote",
+      "sig_aviva_charge"
+    ],
+    "week": 3
+  },
+  "dentist_clash": {
+    "action_kind": "reschedule_appointment",
+    "expected_outcome": "approve",
+    "finding_kind": "appointment_needs_reply",
+    "note": "The dentist confirmation clashes with the weekly sync.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_dentist_appt",
+      "sig_standing_meeting"
+    ],
+    "week": 1
+  },
+  "duplicate_storage_first": {
+    "action_kind": "cancel_subscription",
+    "expected_outcome": "snooze",
+    "finding_kind": "duplicate_service",
+    "note": "First raised in week 1. Snoozed.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_dropbox_receipt",
+      "sig_googleone_receipt"
+    ],
+    "week": 1
+  },
+  "duplicate_storage_resurfaces": {
+    "action_kind": "cancel_subscription",
+    "expected_outcome": "approve",
+    "finding_kind": "duplicate_service",
+    "note": "Resurfaces after the week 1 snooze. Approved this time.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_dropbox_receipt",
+      "sig_googleone_receipt"
+    ],
+    "week": 2
+  },
+  "fitlife_unused": {
+    "action_kind": "cancel_subscription",
+    "expected_outcome": "pending",
+    "finding_kind": "unused_subscription",
+    "note": "The live card. Renewal notice is the trigger; the charge is the evidence.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_fitlife_renewal",
+      "sig_fitlife_charge"
+    ],
+    "week": 4
+  },
+  "pret_double_charge": {
+    "action_kind": "dispute_charge",
+    "expected_outcome": "approve",
+    "finding_kind": "unexpected_charge",
+    "note": "NEVER_AUTO. Interrupts even after three policies are already granted.",
+    "risk_tier": "never_auto",
+    "signal_ids": [
+      "sig_pret_double_1",
+      "sig_pret_double_2"
+    ],
+    "week": 3
+  },
+  "streamly_price_rise": {
+    "action_kind": "downgrade_plan",
+    "expected_outcome": "deny",
+    "finding_kind": "price_increase",
+    "note": "The email buries the new number; the charge confirms it.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_streamly_price_rise",
+      "sig_streamly_charge"
+    ],
+    "week": 2
+  },
+  "thameswater_spike": {
+    "action_kind": "set_reminder",
+    "expected_outcome": "auto",
+    "finding_kind": "usage_anomaly",
+    "note": "SILENT/NOTIFY: executes and appears in the digest, no money moves.",
+    "risk_tier": "notify",
+    "signal_ids": [
+      "sig_thameswater_spike"
+    ],
+    "week": 3
+  },
+  "thetimes_trial_converting": {
+    "action_kind": "cancel_subscription",
+    "expected_outcome": "approve",
+    "finding_kind": "trial_converting",
+    "note": "Converts to GBP 24.00/month 48 hours after the reminder.",
+    "risk_tier": "confirm",
+    "signal_ids": [
+      "sig_thetimes_signup",
+      "sig_thetimes_reminder"
+    ],
+    "week": 4
+  }
+}

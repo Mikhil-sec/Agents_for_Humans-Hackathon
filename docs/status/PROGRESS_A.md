@@ -862,3 +862,272 @@ Unchanged from this morning: `get_providers()`, `mock.seed` (now worked around r
 blocking), `CalendarProvider.update_event`, somewhere for `dispute_charge`, and the
 DynamoDB table.
 
+
+---
+
+## 2026-08-28 — session with Claude Code
+
+**Done**
+
+- Answered Lane C's cross-lane question on the `/fixtures` raw-vs-derived split.
+  **Decision: two stages, permanently.** Lane C's seeder writes the five raw input
+  files; `export_fixtures` writes the five derived ones from a real run. This
+  supersedes the 24 Aug entry that framed the exporter as a stopgap. Entry for
+  `DECISIONS.md` drafted and pending; `c/fixtures-full` is unblocked.
+- Narrowed the mock-mode provider fallback. `providers.py` now falls back only on
+  `(NotImplementedError, FileNotFoundError)` — the two "Lane C is not here yet"
+  conditions. `FixturesNotFoundError` subclasses `FileNotFoundError`, so it is
+  caught structurally without importing Lane C's private `mock/_fixtures`.
+  Anything else now propagates in **both** modes: the fallback exists for Lane C
+  being *absent*, not *broken*, and hiding a malformed fixture behind a demo that
+  still runs but is quietly worse is the failure this seam is meant to prevent.
+- `signals.py::_from_providers` still tolerates one dead source. **All three
+  failing now raises `SignalSourcesUnavailable`.** A bundle-level fault hits every
+  provider equally, and an empty signal list reads down the whole stack as a quiet
+  day — `WeekResult.autonomy_rate` scores zero actions as 1.0, so a caller bug
+  would otherwise publish itself as a perfect autonomy score.
+- Corrected the stale Bedrock model id in `agent/.env.example`. Sonnet 4.5 is only
+  invocable through a cross-region inference profile; the bare id returns HTTP 400.
+  `models.py::DEFAULT_BEDROCK_MODEL_ID` was already correct.
+
+**Verified how**
+
+- 178 tests pass (was 174), ruff clean across all four lanes.
+- Lane C's `c/mock-providers` extracted to a scratch dir and the full Lane A suite
+  plus `make agent` run against their real bundle: 178 pass, demo unchanged at
+  2/3 handled silently. Their eager `require_fixture_set()` behaves as described —
+  with `/fixtures` unseeded the bundle raises at build time and Lane A's stand-in
+  still fires.
+
+**Blocked / needs a human**
+
+- **`Providers.as_of` — raised with Lane C, needed before `c/fixtures-full`.**
+  Their fixture world is anchored to a fixed `DEFAULT_AS_OF` (2026-08-26, last
+  signal 23 Aug); Lane A anchors its read window to wall-clock `now` (`LOOKBACK`,
+  `CALENDAR_HORIZON`, and `tools/ingest.py` passing no `now`). As written, the day
+  run will read **zero signals** from a fully seeded `/fixtures` — three empty
+  lists, no exception — and report a quiet day. Neither their fixture guard nor
+  the new all-sources check catches it, because nothing raises. Lane A makes the
+  change once the reference date is visible on the bundle.
+
+**Notes for the next session**
+
+- **A8 is the next unit of work**, and Lane B is downstream of all three parts:
+  1. Evidence is unbacked on every card. `graph.py::harvest` builds
+     `ProposedAction`s *after* the run with fresh ids, so the tool call carries no
+     `action_id` and `hooks.py::_action_from_tool_use` synthesises one with
+     `finding_id="unbacked"` and a dud `Evidence`. Specialists must cite
+     `finding_id` on the call so the gate can copy the finding's real evidence.
+  2. `runs.json` is missing its headline. `save_run` is only called from
+     `replay.py`, and `export_fixtures` runs week 4 through `build_graph`
+     directly — so the file holds three runs, 43% → 71% → 83%, and the 86% point
+     is absent. `decisions.json` also holds a pending card whose `run_id` matches
+     no run in `runs.json`.
+  3. `as_of` anchoring, once Lane C answers.
+- `make fixtures` stays `seed || export` until `c/fixtures-full` is ready to
+  merge. Flipping it to an unconditional two-stage target before the seeder writes
+  files kills `make demo` at step one.
+
+---
+
+## 2026-09-07 — session with Claude Code (A8: evidence, the missing run, the clock)
+
+**Done**
+
+- **Merged `origin/c/mock-providers` into `miks-branch`.** Both of Lane C's commits
+  (`f80c51a` `Providers.as_of` + package-root re-exports, `cd1d985` the four-week
+  fixture set and seeder). Zero file overlap with Lane A's work since the merge
+  base, so it was a clean integration rather than a reconciliation. There is no
+  `c/fixtures-full` branch — both commits landed on `c/mock-providers`.
+- **Every decision card now cites the evidence it was built on.** `FindingRecorder`
+  promotes triage's drafts into contract `Finding`s on `AfterNodeCallEvent`, between
+  triage completing and the first specialist starting, and puts them in
+  `invocation_state`. `PolicyHook` matches each governed tool call to one and copies
+  its evidence and category onto the `ProposedAction`. `harvest()` reuses the same
+  list rather than minting a second set of ids.
+- **The read window is anchored to the fixture world's clock.** New
+  `signals.resolve_now(explicit, bundle)`: explicit argument, then `Providers.as_of`,
+  then `QH_AS_OF`, then wall clock. `InvalidAsOf` raises on an unparseable override
+  rather than silently reverting to the clock the function exists to avoid.
+- **The fourth week gets a `Run` record.** `runs.json` held three runs and stopped one
+  short of the point the autonomy chart is drawn to make, and `decisions.json` carried
+  a pending card whose `run_id` matched no run in the file.
+- **`export_fixtures` refuses to write an empty day.** `EmptyRunError` on zero signals
+  ingested.
+- **`estimated_annual_savings` is computed.** Counted from `PolicyHook.executed` —
+  what actually ran, silently or on approval — with recurring costs annualised and
+  one-offs counted once.
+- **`make fixtures` is the unconditional two-stage target** Lane C asked for:
+  seeder writes the raw world, exporter writes the derived records. The `|| export`
+  fallback was dead code hiding a real ordering.
+- Consolidated three near-identical `RunStats` builders into `graph.summarise_run`.
+
+**Verified how**
+
+- **206 tests pass** (was 178 before the merge, 175 immediately after it), `ruff check`
+  clean across all four lanes, Lane C's 50 tests still pass.
+- Card evidence before this session: `signal_id="unbacked"`, excerpt *"Tool call
+  cancel_subscription with ['merchant', 'monthly_amount_minor', 'rationale',
+  'reason']"*. After: `signal_id="w4_photocloud"`, excerpt *"Monthly charge of GBP
+  4.99. First charge after a 12-month free period."*
+- The clock bug reproduced and fixed: wall clock returned **0 signals** from the seeded
+  fixtures, the anchored clock returns **2** — FitLife's renewal notice and The Times
+  trial reminder, exactly the two Lane C designed to be live at as-of.
+- `runs.json` now has four points (43% → 71% → 83% → 86%), the pending card's `run_id`
+  resolves, and `estimated_annual_savings` is populated for weeks 1–3.
+- Checked through Lane B's own API with a `TestClient`: `/api/decisions`,
+  `/api/runs`, `/api/activity`, `/api/policies` and `/api/brief/latest` all 200, the
+  card's evidence and its run join correctly.
+- `make agent` unchanged at 2/3 handled silently; `make replay` unchanged at 43% → 86%
+  with 8 rules learned; both stages of `make fixtures` run in order.
+
+**Blocked / needs a human**
+
+- **Re-keying the replay onto Lane C's fixtures is blocked on a seam question.** The
+  four weeks are cleanly readable — a 7-day window ending at each week boundary
+  returns the right signals — but `EmailProvider.fetch_since` and
+  `TransactionProvider.fetch_since` have **no far edge**, so reading a past week also
+  returns every later week. Week 1 comes back with 61 of the 63 signals. Either Lane C
+  adds an `until` to the Protocol in `base.py`, or Lane A filters `occurred_at <= now`
+  locally — but the second changes what the *daily* run sees, because Lane C
+  deliberately dates two signals after `as_of` so the demo inbox has a live card.
+  Raised in `.local/FOR_YORVAN.md`; it is Yorvan's call on `base.py`.
+- **The README's autonomy figures stay at 43% → 86% for now.** That is what the replay
+  actually measures today, so the README is currently correct. Lane C's design targets
+  of 36% → 93% apply to *his* four-week world and only become the right numbers once
+  the replay is re-keyed onto it.
+- **Lane B is still the critical path.** `web/` has no `package.json`; the API's
+  respond and trigger endpoints are still stubs.
+
+**Notes for the next session**
+
+- The pitch and the demo disagree about scale. Root `AGENTS.md` and the submission
+  blurb both claim **~9 decisions a week falling to ~2**; the replay delivers **4
+  falling to 1**, because Lane A's scenarios are a hand-written four weeks rather than
+  Lane C's 63-signal world. Re-keying closes that gap, which is a better argument for
+  doing it than the autonomy percentage is.
+- `set_reminder` now *fails* for any household that is not `hh_demo`: Lane C's mock
+  providers raise `UnknownHouseholdError`, by design — the fixtures cover exactly one
+  household. Harmless (the demo uses `hh_demo`) but it means a test using an invented
+  household id gets a failed tool rather than a successful one.
+
+---
+
+## 2026-09-10 — session with Claude Code (three defects found by looking at the UI)
+
+**Done**
+
+Diya's `14a7c52` landed on `main` on 4 September, so for the first time the whole
+slice could be run. Everything below was found by opening the rendered pages, not by
+a test — all three are Lane A defects that every test in the suite was happy with.
+
+- **The fourth run was dated "now", not week 4.** `export_fixtures` stamped it with
+  `utcnow()` while `replay` dates weeks 1–3 from a fixed start, so the autonomy chart
+  read *1 Aug, 8 Aug, 15 Aug, **7 Sept*** — a fortnight of apparent idleness in the
+  middle of the product's headline graph. Now `REPLAY_START + 3 weeks`.
+- **Every learned rule was stamped with wall-clock time.** The replay simulates four
+  weeks in seconds, so the Rules page said *"since 10 Sept"* against a rule taught in
+  the first week. `_maybe_learn_policy` now passes `now=response.responded_at` — which
+  is the right semantics in production too: a rule comes into force when it is
+  granted, and a run resumed days after suspending is answered on the day of the
+  answer.
+- **`Policy.times_applied` was incremented nowhere.** Declared in `/contracts` since
+  the freeze, `0` on every policy forever. The Rules page — the one page whose entire
+  job is to justify the autonomy the user handed over — reported *"None of them has
+  come up yet"* against rules that were, at that moment, the reason the run stayed
+  quiet. `PolicyHook._count_policy_use` now counts a rule each time it spares the
+  user a question, guarded against the gate's double-run the same way `_verdicts` is.
+  The page now reads *"These 7 rules have spared you 6 interruptions so far."*
+
+**Verified how**
+
+- 206 tests pass, `ruff check` clean across four lanes.
+- Ran Lane B's API and web app from a **clean GitHub clone** against Lane A's
+  regenerated `/fixtures`: `npm install` and `npm run build` both succeed, and her 43
+  API tests pass against our fixture set.
+- Walked the rendered app in a browser. The card's evidence panel shows
+  *"Monthly charge of GBP 4.99. First charge after a 12-month free period."* against
+  `w4_photocloud` — the visible payoff of the 7 September evidence work. Chart now
+  reads 1/8/15/22 Aug. Policies carry real dates and usage counts (British Gas 3,
+  Thames Water 2, Bridge Street Dental 1).
+
+**Notes for the next session**
+
+- **The remaining `times_applied: 0` rules are Yorvan's §5 point made visible.**
+  Merchant-scoped rules for merchants that appear once in four weeks can never fire
+  again. Three of seven rules earn their keep; four never come up. That is now
+  on-screen evidence for moving the replay to `CATEGORY` and `ACTION_KIND` scope.
+- Lane B's Insights page computes "saved so far" from activity impacts and does not
+  yet read `runs[].stats.estimated_annual_savings`, which is populated now. Worth
+  telling Diya rather than changing her page.
+- Two things for Diya, neither Lane A's to fix: a stray **gitlink** committed at the
+  repo root (`Agents_for_Humans-Hackathon`, mode 160000 → `1f8acff`), which puts an
+  empty directory in every clean clone; and `/favicon.ico` 404s, the only console
+  error on the page.
+
+---
+
+## 2026-09-10 (later) — Lane B merged in; four defects found by using the product
+
+**Done**
+
+- **Merged `origin/main` (Diya's `14a7c52`) into `miks-branch`** as `bb69e50`. Clean,
+  zero file overlap. `miks-branch` is now the only place all three lanes exist
+  together: **206 agent + 50 integrations + 43 api = 299 tests passing.** Not pushed.
+- **`make demo` now starts something.** It printed three lines and exited while the
+  README told the reader to open `http://localhost:3000` — a blank tab on the judge's
+  first command, which Diya flagged and which was mine to fix. Now `$(MAKE) -j2 api
+  web`: make's own job control rather than shell backgrounding, so one Ctrl+C stops
+  both and there is no process-group trap to get subtly wrong.
+- **The digest no longer contradicts the inbox.** `daily_brief.json` said *"Nothing
+  needs you today"* with an empty `pending_decision_ids` while a card sat pending in
+  the same fixture set. Two causes: the exporter discarded the cards `persist_decisions`
+  returned, and the fallback headline read `"1 decision(s) need you"`, which is not the
+  voice the web app and both API backends use. Reads **"One thing needs you today"** now
+  and lists the card.
+- **The autonomy chart's fourth point was dated "now".** `1 Aug, 8 Aug, 15 Aug,
+  7 Sept` — a fortnight of apparent idleness in the middle of the headline graph. Now
+  `REPLAY_START + 3 weeks`.
+- **Learned rules were stamped with wall-clock time**, so the Rules page read *"since
+  10 Sept"* for a rule taught in week 1. `_maybe_learn_policy` now passes
+  `now=response.responded_at` — the right semantics in production too, since a run
+  resumed days after suspending is answered on the day of the answer.
+- **`Policy.times_applied` was incremented nowhere in the codebase.** Declared in
+  `/contracts` since the freeze, `0` on every policy forever, so the Rules page reported
+  *"None of them has come up yet"* against rules that were at that moment the reason the
+  run stayed quiet. Counted now in `PolicyHook._count_policy_use`, guarded against the
+  gate's double-run the same way `_verdicts` is.
+
+**Verified how**
+
+- 299 tests across the three suites; `ruff check` clean on all four lanes.
+- Lane B verified from a **clean GitHub clone**, not from the working tree: `npm
+  install` and `npm run build` both succeed, and Diya's 43 API tests pass against Lane
+  A's regenerated `/fixtures`.
+- Ran the full stack and walked it in a browser. **All four defects above were found
+  that way and none of them broke a test.** The Rules page now reads *"These 7 rules
+  have spared you 6 interruptions so far."*
+- Diya's reported `daily_brief.json` / `runs.json` mismatch confirmed fixed: the brief
+  and the pending card now point at the same run, and that run is in `runs.json`.
+
+**Blocked / needs a human**
+
+- **The replay re-key is still blocked on Lane C**, unchanged: `fetch_since` in
+  `integrations/base.py` has no far edge, so reading a past week returns every later
+  week (week 1 comes back with 61 of 63 signals). Needs either an `until` parameter or a
+  decision that `as_of` means a day rather than an instant. Asked in
+  `.local/outbox/FOR_YORVAN.md`.
+- **`make demo` is untested.** `make` is not installed on this machine. The change is
+  small and idiomatic but someone with a working toolchain must run it once from a clean
+  clone before the 15th. Asked of Diya.
+- **The architecture diagram does not exist.** `docs/assets/` contains only a README.
+  It is a *hard* submission requirement. Yorvan owns it; allocated to 13 Sept.
+
+**Notes for the next session**
+
+- **Four of seven learned rules show `times_applied: 0`** — merchant-scoped rules for
+  merchants that appear once in four weeks. That is Lane C's `CATEGORY`/`ACTION_KIND`
+  argument, now measurable on screen rather than only in reasoning.
+- The pitch and the demo still disagree about scale: `AGENTS.md` and the submission
+  blurb claim ~9 decisions/week falling to ~2; the replay delivers 4 → 1. The re-key
+  closes that, and it is a better argument for doing it than the autonomy percentage is.

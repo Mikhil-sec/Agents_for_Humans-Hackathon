@@ -40,6 +40,7 @@ from quiet_hours_contracts import (
     DecisionResponse,
     DecisionStatus,
     Evidence,
+    Finding,
     Money,
     Policy,
     PolicyScope,
@@ -134,10 +135,26 @@ class PolicyHook(HookProvider):
 
         self._pending: dict[str, _GateRecord] = {}
 
+        self._executed: dict[str, ProposedAction] = {}
+        """Actions whose tool call actually ran and succeeded, keyed by
+        `toolUseId` for the same reason `_verdicts` is.
+
+        **Not the same set as the silently-allowed ones.** An action the user was
+        asked about and approved executes too — that is what approving means —
+        and it is the only set `RunStats.estimated_annual_savings` can honestly
+        be counted from. Filtering on `Verdict.allow_silently` instead would
+        report zero savings for a household that approved every cancellation it
+        was asked about, which is the opposite of what happened."""
+
     @property
     def verdicts(self) -> list[tuple[ProposedAction, Verdict]]:
         """One entry per governed tool call, in the order first seen."""
         return list(self._verdicts.values())
+
+    @property
+    def executed(self) -> list[ProposedAction]:
+        """The actions this run actually carried out, silently or on approval."""
+        return list(self._executed.values())
 
     # -- registration ------------------------------------------------------
 
@@ -157,6 +174,7 @@ class PolicyHook(HookProvider):
         verdict = evaluate(action, self.policies, category=category)
 
         tool_use_id = event.tool_use["toolUseId"]
+        first_pass = tool_use_id not in self._verdicts
         self._verdicts[tool_use_id] = (action, verdict)
         record = _GateRecord(action=action, verdict=verdict)
         self._pending[tool_use_id] = record
@@ -164,6 +182,8 @@ class PolicyHook(HookProvider):
         if verdict.allow_silently:
             # Executes without asking. The audit line is written in `audit()`,
             # once we know whether it actually worked.
+            if first_pass and verdict.policy_id:
+                self._count_policy_use(verdict.policy_id)
             return
 
         decision_id = decision_id_for(tool_use_id)
@@ -209,6 +229,9 @@ class PolicyHook(HookProvider):
         else:
             error = None
 
+        if succeeded:
+            self._executed[event.tool_use["toolUseId"]] = record.action
+
         entry = build_activity_entry(
             record.action,
             risk=record.verdict.effective_risk,
@@ -235,6 +258,7 @@ class PolicyHook(HookProvider):
         state = invocation_state or {}
         household_id = state.get("household_id") or self.household_id
         run_id = state.get("run_id") or self.run_id
+        finding = self._finding_for(tool_input, state)
 
         # The graph (A5) writes a ProposedAction and passes its id to the tool.
         action_id = tool_input.get("action_id")
@@ -265,26 +289,144 @@ class PolicyHook(HookProvider):
             )
         )
 
+        # The finding is what makes the card answerable: its evidence is the
+        # quoted line from the household's own inbox that the user reads under
+        # "why am I being asked this", and its category is what a
+        # `CATEGORY`-scoped policy is learned against. Without one, both fall
+        # back to a description of the tool call, which explains nothing.
+        params = dict(tool_input)
+        if finding is not None and finding.category and "category" not in params:
+            params["category"] = finding.category
+
         return ProposedAction(
             action_id=action_id if isinstance(action_id, str) else new_id("act"),
             household_id=household_id,
             run_id=run_id,
-            finding_id=str(tool_input.get("finding_id") or "unbacked"),
+            finding_id=finding.finding_id if finding is not None else "unbacked",
             kind=kind,
             risk=floor,
             summary=self._summarise(kind, tool_input),
             rationale=rationale,
-            params=dict(tool_input),
+            params=params,
             reversible=RISK_ORDER[floor] <= RISK_ORDER[RiskTier.NOTIFY],
             estimated_impact=self._money_from(tool_input),
-            evidence=[
-                Evidence(
-                    signal_id="unbacked",
-                    excerpt=f"Tool call {tool_use.get('name')} with {sorted(tool_input)}"[:500],
-                )
-            ],
+            evidence=self._evidence_for(finding, tool_use, tool_input),
             created_at=utcnow(),
         )
+
+    def _count_policy_use(self, policy_id: str) -> None:
+        """Record that a rule spared the user a question.
+
+        `Policy.times_applied` has been declared in `/contracts` since the freeze
+        and **incremented nowhere**, so the policies page reported "not used yet"
+        against every rule the household had ever granted — including rules that
+        were, at that moment, the reason the run stayed quiet. That is the one
+        page whose entire job is to justify the autonomy the user handed over.
+
+        Guarded by `first_pass` at the call site for the same reason `_verdicts`
+        is keyed by `toolUseId`: the gate body runs again for a replayed node,
+        and a rule that silenced one action must not be counted twice for it.
+        """
+        for policy in self.policies:
+            if policy.policy_id != policy_id:
+                continue
+            policy.times_applied += 1
+            self.store.save_policy(policy)
+            return
+        logger.warning("verdict cited unknown policy_id=%s; not counted", policy_id)
+
+    # -- backing a tool call with the finding it came from ------------------
+
+    #: Free-text tool fields a merchant name can be mentioned inside. The
+    #: scheduling tools take no `merchant` — a reminder has a subject, a calendar
+    #: entry a title — but they still name the merchant in it, which is what
+    #: makes them resolvable at all.
+    _TEXT_FIELDS = ("merchant", "subject", "title", "recipient", "note")
+
+    def _finding_for(self, tool_input: dict[str, Any], state: dict[str, Any]) -> Finding | None:
+        """Which of this run's findings this tool call is acting on.
+
+        **Resolved here rather than asked of the model.** `graph.FindingRecorder`
+        promotes triage's drafts into contract `Finding`s before any specialist
+        runs and puts them in `invocation_state`, so by the time a tool call
+        reaches the gate the finding it came from already exists with a real id.
+        Matching it is code's job: a model that could name its own backing
+        evidence could also name someone else's.
+
+        Order:
+
+        1. An explicit `finding_id` on the call. No tool declares that parameter
+           today, so nothing can supply it — the branch is here because the id
+           now exists to be cited, and this is where a citation would be honoured.
+        2. The merchant. Exactly on the `merchant` argument, then mentioned
+           inside one of the other free-text fields.
+
+        Returns None when nothing matches, which is not an error: an improvised
+        tool call is legitimate and still passes the gate at its floor risk. It
+        just cannot claim evidence it does not have.
+        """
+        findings = [f for f in (state.get("findings") or []) if isinstance(f, Finding)]
+        if not findings:
+            return None
+
+        cited = tool_input.get("finding_id")
+        if isinstance(cited, str) and cited:
+            for finding in findings:
+                if finding.finding_id == cited:
+                    return finding
+            logger.warning("tool cited unknown finding_id=%s; matching on merchant", cited)
+
+        text = " ".join(
+            value.casefold()
+            for field in self._TEXT_FIELDS
+            if isinstance(value := tool_input.get(field), str) and value.strip()
+        )
+        if not text:
+            return None
+
+        named = tool_input.get("merchant")
+        named = named.strip().casefold() if isinstance(named, str) else ""
+
+        matches = [
+            finding
+            for finding in findings
+            if finding.merchant
+            and (finding.merchant.casefold() == named or finding.merchant.casefold() in text)
+        ]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            # One merchant, two findings in a single run — a bill *and* a price
+            # rise, say. Confidence is the only ordering triage gives us, and
+            # picking silently would hide a real ambiguity from whoever reads
+            # the trail.
+            matches.sort(key=lambda finding: finding.confidence, reverse=True)
+            logger.warning(
+                "%d findings match this call; backing it with the most confident (%s)",
+                len(matches),
+                matches[0].finding_id,
+            )
+        return matches[0]
+
+    @staticmethod
+    def _evidence_for(
+        finding: Finding | None, tool_use: dict[str, Any], tool_input: dict[str, Any]
+    ) -> list[Evidence]:
+        """The finding's own evidence, or an honest description of the call.
+
+        The fallback deliberately still says `unbacked` rather than inventing a
+        `signal_id`. A card that cites nothing is a card the activity trail can
+        be audited against; a card citing a signal that does not exist is worse
+        than one citing none.
+        """
+        if finding is not None and finding.evidence:
+            return list(finding.evidence)
+        return [
+            Evidence(
+                signal_id="unbacked",
+                excerpt=f"Tool call {tool_use.get('name')} with {sorted(tool_input)}"[:500],
+            )
+        ]
 
     @staticmethod
     def _summarise(kind: ActionKind, tool_input: dict[str, Any]) -> str:
@@ -459,6 +601,13 @@ class PolicyHook(HookProvider):
             if action.params.get("merchant")
             else PolicyScope.ACTION_KIND,
             category=category,
+            # **When the user answered, not when this code ran.** The replay
+            # simulates four weeks in seconds, so wall clock stamps every rule
+            # with today and the policies page reads "since 10 Sept" for a rule
+            # learned in the first week. It is the right semantics in production
+            # too: a rule comes into force when it is granted, and a run resumed
+            # days after it suspended is answered on the day of the answer.
+            now=response.responded_at,
         )
         self.store.save_policy(policy)
         self.new_policies.append(policy)

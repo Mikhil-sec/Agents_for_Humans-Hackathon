@@ -29,6 +29,7 @@ from quiet_hours_agent.graph import (
     NODE_TRIAGE,
     ROUTING,
     SPECIALISTS,
+    annual_savings_from,
     build_graph,
     harvest,
 )
@@ -324,3 +325,153 @@ def test_the_model_never_sets_the_household_on_anything_it_produces(run, store):
     for record in [*outcome.findings, *outcome.actions]:
         assert record.household_id == HOUSEHOLD
         assert record.run_id == run.run_id
+
+
+# --------------------------------------------------------------------------
+# Findings get their identity before the specialists act on them
+# --------------------------------------------------------------------------
+
+
+def test_findings_exist_before_the_specialists_run(run, store):
+    """`FindingRecorder` promotes triage's drafts on `AfterNodeCallEvent`, which
+    is the only seam between triage finishing and a specialist starting. Before
+    it existed, findings were minted in `harvest()` after the whole graph — so
+    every tool call the specialists made was backed by nothing."""
+    run("Do this household's admin for today.")
+
+    findings = run.invocation_state.get("findings")
+    assert findings, "triage's findings must reach invocation_state"
+    assert all(f.finding_id.startswith("fin_") for f in findings)
+    assert all(f.run_id == run.run_id for f in findings)
+
+    for action, _verdict in run.policy_hook.verdicts:
+        assert action.finding_id != "unbacked", action.summary
+        assert action.evidence[0].signal_id != "unbacked", action.summary
+
+
+def test_harvest_reuses_the_recorded_findings_rather_than_minting_new_ids(run, store):
+    """Two sets of ids for one set of findings would mean the id on the card and
+    the id in the store disagree — the exact bug the recorder closes."""
+    result = run("Do this household's admin for today.")
+    recorded = [f.finding_id for f in run.invocation_state["findings"]]
+
+    outcome = harvest(result, run)
+
+    assert [f.finding_id for f in outcome.findings] == recorded
+
+
+def test_every_action_cites_a_finding_that_exists(run, store):
+    """The join Lane B renders: card -> action -> finding -> evidence."""
+    result = run("Do this household's admin for today.")
+    outcome = harvest(result, run)
+    known = {f.finding_id for f in outcome.findings}
+
+    for action, _verdict in run.policy_hook.verdicts:
+        assert action.finding_id in known
+
+
+# --------------------------------------------------------------------------
+# The savings figure
+# --------------------------------------------------------------------------
+
+
+def _action(kind: ActionKind, amount_minor: int | None, *, currency: str = "GBP"):
+    from quiet_hours_contracts import Evidence, Money, ProposedAction
+
+    return ProposedAction(
+        action_id=f"act_{kind.value}",
+        household_id=HOUSEHOLD,
+        run_id="run_x",
+        finding_id="fin_x",
+        kind=kind,
+        risk=DEFAULT_RISK_BY_ACTION[kind],
+        summary=kind.value,
+        rationale="because",
+        reversible=True,
+        evidence=[Evidence(signal_id="sig_x", excerpt="the line it came from")],
+        estimated_impact=(
+            None if amount_minor is None else Money(amount_minor=amount_minor, currency=currency)
+        ),
+        created_at=datetime(2026, 8, 26, tzinfo=UTC),
+    )
+
+
+def test_a_cancelled_subscription_is_worth_twelve_months():
+    """GBP 38 a month that stops recurring is GBP 456 a year."""
+    savings = annual_savings_from([_action(ActionKind.CANCEL_SUBSCRIPTION, 3800)])
+
+    assert savings is not None
+    assert savings.amount_minor == 45600
+
+
+def test_a_one_off_refund_is_not_annualised():
+    """Winning a GBP 38 dispute saves GBP 38. Multiplying it by twelve is the
+    kind of arithmetic that makes a demo unbelievable to anyone who checks."""
+    savings = annual_savings_from([_action(ActionKind.DISPUTE_CHARGE, 3800)])
+
+    assert savings is not None
+    assert savings.amount_minor == 3800
+
+
+def test_paying_a_bill_is_not_a_saving():
+    """`pay_bill` carries the largest `estimated_impact` in the whole trail and
+    is money going out, not money kept."""
+    assert annual_savings_from([_action(ActionKind.PAY_BILL, 8420)]) is None
+
+
+def test_nothing_saved_is_none_rather_than_zero():
+    """`Money(0)` on the chart reads as a measured zero. The field is optional
+    precisely so 'nothing to report' is distinguishable from 'we counted, it was
+    nought'."""
+    assert annual_savings_from([]) is None
+    assert annual_savings_from([_action(ActionKind.FILE_RECORD, 1000)]) is None
+
+
+def test_an_action_with_no_impact_is_skipped():
+    assert annual_savings_from([_action(ActionKind.CANCEL_SUBSCRIPTION, None)]) is None
+
+
+def test_mixed_currencies_are_not_summed(caplog):
+    """A single household is realistically one currency, and a silently wrong
+    total is worse than a slightly incomplete one."""
+    with caplog.at_level("WARNING"):
+        savings = annual_savings_from(
+            [
+                _action(ActionKind.CANCEL_SUBSCRIPTION, 1000),
+                _action(ActionKind.DOWNGRADE_PLAN, 1000, currency="USD"),
+            ]
+        )
+
+    assert savings is not None
+    assert savings.currency == "GBP"
+    assert savings.amount_minor == 12000
+    assert any("does not match" in record.message for record in caplog.records)
+
+
+def test_an_interrupted_action_is_not_counted_as_executed(run, store):
+    """It is a proposal until the user answers, and may never happen at all.
+    Counting it would let the savings figure be inflated by asking for things
+    rather than by doing them."""
+    run("Do this household's admin for today.")
+
+    executed = {action.action_id for action in run.policy_hook.executed}
+    interrupted = [
+        action for action, verdict in run.policy_hook.verdicts if not verdict.allow_silently
+    ]
+
+    assert interrupted, "the demo day must still interrupt at least once"
+    for action in interrupted:
+        assert action.action_id not in executed, action.summary
+
+
+def test_everything_executed_passed_through_the_gate(run, store):
+    """`executed` is recorded in `audit()`, which only ever fires for a call the
+    gate produced a verdict for. Nothing can reach the savings figure without
+    having been governed."""
+    run("Do this household's admin for today.")
+
+    governed = {action.action_id for action, _verdict in run.policy_hook.verdicts}
+
+    assert run.policy_hook.executed
+    for action in run.policy_hook.executed:
+        assert action.action_id in governed

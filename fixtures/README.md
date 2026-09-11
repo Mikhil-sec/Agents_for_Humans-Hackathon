@@ -25,6 +25,11 @@ They are committed so `make demo` works on a clean clone with no generation step
 | `policies.json` | Policies granted during the four weeks |
 | `runs.json` | Run history, which produces the autonomy chart |
 
+Design rationale for the raw input half of this set — the reference date, the
+four-week calendar, and the full `merchant_history.json` spec — lives in
+[../docs/lanes/LANE_C_FIXTURE_DESIGN.md](../docs/lanes/LANE_C_FIXTURE_DESIGN.md),
+not here. This file stays the data; that one is the "why".
+
 ## The narrative these must produce
 
 | Week | Decisions raised | Handled silently |

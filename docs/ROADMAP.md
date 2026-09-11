@@ -1,18 +1,22 @@
 # Roadmap — 21 August to 15 September 2026
 
-25 days. Three lanes. One rule above all others: **a working end-to-end slice by 31 August.**
+25 days. Three lanes. One rule above all others: **a working end-to-end slice by 7 September.**
+
+> **Revised 28 Aug 2026.** The slice was 31 August; it moved by one week. The
+> submission date did not move, so that week comes out of Phase 2 depth, not out of
+> the end. See `docs/status/DECISIONS.md`, 2026-08-28.
 
 ---
 
 ## The one milestone that matters
 
-**By Sunday 31 August, this must work:**
+**By Sunday 7 September, this must work:**
 
 > A seeded email arrives → the agent triages it → the policy engine decides it needs a human → a decision card appears in the web app → the user taps Approve → the suspended Strands session resumes → the action completes → it appears in the activity trail.
 
 Ugly is fine. Unstyled is fine. One scenario is fine. But it must run end to end.
 
-Everything after 31 August is depth, polish and presentation. If the slice slips past the 31st, cut scope immediately using the order in `docs/lanes/TWO_PERSON_FALLBACK.md` — that list applies to a three-person team under pressure too.
+Everything after 7 September is depth, polish and presentation. **This date cannot move again.** Phase 3 starts on the 8th and the feature freeze on the 12th is fixed, so a second slip has nowhere to go: it comes straight out of polish and the video. If the slice looks like slipping past the 7th, cut scope immediately using the order in `docs/lanes/TWO_PERSON_FALLBACK.md` — that list applies to a three-person team under pressure too.
 
 ---
 
@@ -29,17 +33,21 @@ Everything after 31 August is depth, polish and presentation. If the slice slips
 
 **Highest risk in the whole project:** the interrupt spike. If `event.interrupt()` does not behave as we expect across process boundaries, we need to know on day 2 and redesign, not on day 18.
 
-## Phase 1 — Vertical slice (25–31 Aug)
+## Phase 1 — Vertical slice (25 Aug – 7 Sept)
 
 | Lane | Deliverable |
 |---|---|
 | **A** | Policy engine with tests; two real tools (one silent, one confirm); interrupt wired to the policy gate |
 | **B** | Decision card component; Today screen with a genuinely good empty state; respond → resume endpoint |
-| **C** | Full four-week fixture narrative; DynamoDB + S3 via CDK |
+| **C** | Full four-week fixture narrative (`c/fixtures-full`); DynamoDB + S3 via CDK |
 
 **Exit criteria: the milestone above, demonstrated to the whole team on a call.** Record a 60-second screen capture of it working — that is the insurance policy for the final video.
 
-## Phase 2 — Depth (1–7 Sept)
+## Phase 2 — Depth (runs concurrently, 1–7 Sept)
+
+**Overlaps Phase 1 now that the slice has moved.** Anything here that is not on the
+critical path for the slice is the first thing to cut. Lane A's graph, policy
+learning and replay are already done, so the compression falls on B and C.
 
 | Lane | Deliverable |
 |---|---|
@@ -98,10 +106,11 @@ Submit on the **morning** of the 15th, not the evening. Work through `docs/SUBMI
 |---|---|---|
 | Interrupt/resume doesn't work as expected | Medium | Spike it on day 1–2. If it fails, fall back to a shorter-lived approval queue polled by the agent — same UX, less elegant internals. |
 | AgentCore deployment eats days | **High** | Timebox to two days. AgentCore is optional per the rules — a locally-run agent with a deployed web app still scores. Do not let it block the vertical slice. |
-| Fixtures too thin, demo falls flat | Medium | C treats fixtures as a first-class deliverable, not an afterthought. Review them as a team on 31 Aug. |
+| Fixtures too thin, demo falls flat | Medium | C treats fixtures as a first-class deliverable, not an afterthought. Review them as a team on 7 Sept. |
 | Third teammate doesn't join | Medium | `TWO_PERSON_FALLBACK.md`. **Decide by 25 Aug.** |
 | Contract churn breaks lanes | Medium | Freeze 24 Aug, `contract:` PRs, CODEOWNERS. |
-| Video left to the last day | **High** | Record the vertical slice on 31 Aug as insurance. Script written by 8 Sept. |
+| Video left to the last day | **High** | Record the vertical slice on 7 Sept as insurance. Script written by 8 Sept. |
 | Everyone builds, nobody writes the README | Medium | It is on the checklist and it is assigned. |
+| Slice slips a second time | **High** | It moved once, on 28 Aug. Phase 3 and the 12 Sept feature freeze are fixed, so a second slip lands on polish and the video — the two things judges actually see. Cut scope instead. |
 
 The two marked **High** are the ones that actually sink hackathon teams. Guard them.

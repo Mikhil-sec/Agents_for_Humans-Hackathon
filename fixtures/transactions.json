@@ -1,0 +1,382 @@
+[
+  {
+    "amount": {
+      "amount_minor": 16800,
+      "currency": "GBP"
+    },
+    "merchant": "Camden Council",
+    "occurred_at": "2026-07-27T09:00:00Z",
+    "signal_id": "sig_camden_counciltax",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1800,
+      "currency": "GBP"
+    },
+    "merchant": "Vodafone (A)",
+    "occurred_at": "2026-07-30T09:00:00Z",
+    "signal_id": "sig_vodafone_line1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 3200,
+      "currency": "GBP"
+    },
+    "merchant": "Hyperoptic",
+    "occurred_at": "2026-08-04T09:00:00Z",
+    "signal_id": "sig_hyperoptic_broadband",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1800,
+      "currency": "GBP"
+    },
+    "merchant": "Vodafone (T)",
+    "occurred_at": "2026-08-06T09:00:00Z",
+    "signal_id": "sig_vodafone_line2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 999,
+      "currency": "GBP"
+    },
+    "merchant": "Dropbox",
+    "occurred_at": "2026-08-07T09:00:00Z",
+    "signal_id": "sig_dropbox_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 799,
+      "currency": "GBP"
+    },
+    "merchant": "Google One",
+    "occurred_at": "2026-08-12T09:00:00Z",
+    "signal_id": "sig_googleone_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1375,
+      "currency": "GBP"
+    },
+    "merchant": "TV Licence",
+    "occurred_at": "2026-08-15T09:00:00Z",
+    "signal_id": "sig_tvlicence_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 9400,
+      "currency": "GBP"
+    },
+    "merchant": "Octopus Energy",
+    "occurred_at": "2026-08-18T09:00:00Z",
+    "signal_id": "sig_octopus_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 3800,
+      "currency": "GBP"
+    },
+    "merchant": "FitLife",
+    "occurred_at": "2026-08-19T09:00:00Z",
+    "signal_id": "sig_fitlife_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1549,
+      "currency": "GBP"
+    },
+    "merchant": "Streamly",
+    "occurred_at": "2026-08-05T09:00:00Z",
+    "signal_id": "sig_streamly_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 10290,
+      "currency": "GBP"
+    },
+    "merchant": "Thames Water",
+    "occurred_at": "2026-08-14T09:00:00Z",
+    "signal_id": "sig_thameswater_spike",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 26108,
+      "currency": "GBP"
+    },
+    "merchant": "Aviva",
+    "occurred_at": "2026-08-17T09:00:00Z",
+    "signal_id": "sig_aviva_charge",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 485,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-08-11T08:15:00Z",
+    "signal_id": "sig_pret_double_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 485,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-08-11T18:30:00Z",
+    "signal_id": "sig_pret_double_2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 7989,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-07-28T12:00:00Z",
+    "signal_id": "sig_sainsburys_w1_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 3288,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-07-30T13:00:00Z",
+    "signal_id": "sig_sainsburys_w1_2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 6579,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-04T12:00:00Z",
+    "signal_id": "sig_sainsburys_w2_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1878,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-06T13:00:00Z",
+    "signal_id": "sig_sainsburys_w2_2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 5169,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-11T12:00:00Z",
+    "signal_id": "sig_sainsburys_w3_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 8068,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-13T13:00:00Z",
+    "signal_id": "sig_sainsburys_w3_2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 3758,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-18T12:00:00Z",
+    "signal_id": "sig_sainsburys_w4_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 6657,
+      "currency": "GBP"
+    },
+    "merchant": "Sainsbury's",
+    "occurred_at": "2026-08-20T13:00:00Z",
+    "signal_id": "sig_sainsburys_w4_2",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 6754,
+      "currency": "GBP"
+    },
+    "merchant": "Shell",
+    "occurred_at": "2026-07-28T12:00:00Z",
+    "signal_id": "sig_shell_w1_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 6309,
+      "currency": "GBP"
+    },
+    "merchant": "Shell",
+    "occurred_at": "2026-08-04T12:00:00Z",
+    "signal_id": "sig_shell_w2_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 5863,
+      "currency": "GBP"
+    },
+    "merchant": "Shell",
+    "occurred_at": "2026-08-11T12:00:00Z",
+    "signal_id": "sig_shell_w3_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 5418,
+      "currency": "GBP"
+    },
+    "merchant": "Shell",
+    "occurred_at": "2026-08-18T12:00:00Z",
+    "signal_id": "sig_shell_w4_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1387,
+      "currency": "GBP"
+    },
+    "merchant": "TfL",
+    "occurred_at": "2026-07-28T12:00:00Z",
+    "signal_id": "sig_tfl_w1_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1135,
+      "currency": "GBP"
+    },
+    "merchant": "TfL",
+    "occurred_at": "2026-08-04T12:00:00Z",
+    "signal_id": "sig_tfl_w2_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 882,
+      "currency": "GBP"
+    },
+    "merchant": "TfL",
+    "occurred_at": "2026-08-11T12:00:00Z",
+    "signal_id": "sig_tfl_w3_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 630,
+      "currency": "GBP"
+    },
+    "merchant": "TfL",
+    "occurred_at": "2026-08-18T12:00:00Z",
+    "signal_id": "sig_tfl_w4_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 2726,
+      "currency": "GBP"
+    },
+    "merchant": "Boots",
+    "occurred_at": "2026-07-28T12:00:00Z",
+    "signal_id": "sig_boots_w1_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 2253,
+      "currency": "GBP"
+    },
+    "merchant": "Boots",
+    "occurred_at": "2026-08-04T12:00:00Z",
+    "signal_id": "sig_boots_w2_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1780,
+      "currency": "GBP"
+    },
+    "merchant": "Boots",
+    "occurred_at": "2026-08-11T12:00:00Z",
+    "signal_id": "sig_boots_w3_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 1307,
+      "currency": "GBP"
+    },
+    "merchant": "Boots",
+    "occurred_at": "2026-08-18T12:00:00Z",
+    "signal_id": "sig_boots_w4_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 694,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-07-28T12:00:00Z",
+    "signal_id": "sig_pret_w1_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 609,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-08-04T12:00:00Z",
+    "signal_id": "sig_pret_w2_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 523,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-08-11T12:00:00Z",
+    "signal_id": "sig_pret_w3_1",
+    "source": "mock_bank"
+  },
+  {
+    "amount": {
+      "amount_minor": 438,
+      "currency": "GBP"
+    },
+    "merchant": "Pret A Manger",
+    "occurred_at": "2026-08-18T12:00:00Z",
+    "signal_id": "sig_pret_w4_1",
+    "source": "mock_bank"
+  }
+]

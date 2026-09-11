@@ -23,17 +23,41 @@ install:
 	cd api && pip install -e ".[dev]"
 	cd web && npm install
 
+# `make demo` is the judge's entry point and the README sends them straight to
+# http://localhost:3000 afterwards -- so it has to actually serve something.
+# It used to print these three lines and exit, which left that browser tab blank.
+#
+# `$(MAKE) -j2 api web` runs both targets in parallel. Deliberately not shell
+# backgrounding with `&` and `wait`: -j is make's own job control, so one Ctrl+C
+# stops both and there is no process-group trap to get subtly wrong.
 demo: fixtures
-	@echo "Starting Quiet Hours in mock mode..."
+	@echo ""
+	@echo "Starting Quiet Hours in mock mode. No AWS account, no credentials."
 	@echo "  API  -> http://localhost:8000"
-	@echo "  Web  -> http://localhost:3000"
+	@echo "  Web  -> http://localhost:3000     <- open this"
+	@echo ""
+	@echo "The web app takes 10-20 seconds to compile on a cold start."
 	@echo "Run 'make agent' in a second terminal to trigger a daily run."
+	@echo "Ctrl+C stops both."
+	@echo ""
+	@$(MAKE) -j2 api web
 
-# Lane C's seeder is the real source. Until it lands it raises NotImplementedError,
-# which would leave /fixtures empty and every Lane B screen 404 -- so fall back to
-# Lane A's exporter, which writes the same files from an actual mock-mode agent run.
+# /fixtures is produced in two stages, and both must run in this order.
+#
+#   1. Lane C's seeder writes the RAW household world -- inbox, transactions,
+#      calendar, merchant history, and the scenario manifest. Anchored to a fixed
+#      reference date so a re-seed a year from now produces the same world.
+#   2. Lane A's exporter runs the agent for real against that world and writes the
+#      DERIVED records Lane B renders -- decisions, activity, policies, runs and
+#      the daily brief. Generated rather than hand-written, so they cannot drift
+#      out of contract.
+#
+# This was `seed || export` while Lane C's seeder was a stub that raised. It
+# writes files now, so the fallback was dead code hiding a real ordering: the
+# exporter is downstream of the seeder, not an alternative to it.
 fixtures:
-	@python -m quiet_hours_integrations.mock.seed --out fixtures/ 2>/dev/null 	  || python -m quiet_hours_agent.export_fixtures --out fixtures/
+	python -m quiet_hours_integrations.mock.seed --out fixtures/
+	python -m quiet_hours_agent.export_fixtures --out fixtures/
 
 agent:
 	cd agent && QH_PROVIDER_MODE=mock python -m quiet_hours_agent.local_run

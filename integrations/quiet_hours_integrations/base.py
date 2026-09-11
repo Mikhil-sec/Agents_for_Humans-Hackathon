@@ -154,6 +154,8 @@ class Providers:
         calendar: CalendarProvider,
         payments: PaymentProvider,
         subscriptions: SubscriptionProvider,
+        *,
+        as_of: datetime | None = None,
     ) -> None:
         self.mode = mode
         self.email = email
@@ -161,6 +163,25 @@ class Providers:
         self.calendar = calendar
         self.payments = payments
         self.subscriptions = subscriptions
+        self.as_of = as_of
+        """The fixture world's reference "now", or `None` for wall-clock time.
+
+        Every provider method below still takes its own `since`/`start`/`end` —
+        this is not a substitute for those. It exists because a *caller*
+        computing a lookback window (e.g. "read since 24 hours ago") needs to
+        know what "now" means for the bundle it holds. Mock mode is anchored to
+        a fixed point in time (see `mock._fixtures.DEFAULT_AS_OF`) so the same
+        fixtures read the same way regardless of when the demo runs; live mode
+        has no such anchor, because a live run's "now" is simply now.
+
+        `None` means "use wall-clock `datetime.now(UTC)`" — correct for `LIVE`,
+        which leaves this unset. `build_mock_providers` always sets it to the
+        real reference date. A caller computing a window writes
+        `bundle.as_of or datetime.now(UTC)`, never `datetime.now(UTC)` alone —
+        the latter is what silently made every mock-mode lookback window read
+        as a quiet day once the fixtures' fixed dates fell far enough behind
+        wall-clock time.
+        """
 
     @property
     def is_live(self) -> bool:

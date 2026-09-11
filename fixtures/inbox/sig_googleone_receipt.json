@@ -1,0 +1,12 @@
+{
+  "amount": {
+    "amount_minor": 799,
+    "currency": "GBP"
+  },
+  "body": "Thanks for your Google One 2TB membership. Your next payment is GBP 7.99.",
+  "merchant": "Google One",
+  "occurred_at": "2026-07-29T11:00:00Z",
+  "signal_id": "sig_googleone_receipt",
+  "source": "mock_gmail",
+  "subject": "Your Google One receipt"
+}

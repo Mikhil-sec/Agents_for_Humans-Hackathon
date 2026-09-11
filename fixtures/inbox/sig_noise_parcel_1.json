@@ -1,0 +1,7 @@
+{
+  "body": "Track your delivery, arriving Thursday.",
+  "occurred_at": "2026-08-02T10:00:00Z",
+  "signal_id": "sig_noise_parcel_1",
+  "source": "mock_gmail",
+  "subject": "Your parcel has been dispatched"
+}

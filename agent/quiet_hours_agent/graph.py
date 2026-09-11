@@ -43,14 +43,17 @@ from pathlib import Path
 from typing import Any
 
 from quiet_hours_contracts import (
+    ActionKind,
     DailyBrief,
     Finding,
     FindingKind,
     Money,
     Policy,
     ProposedAction,
+    RunStats,
 )
 from strands import Agent
+from strands.hooks import AfterNodeCallEvent, HookProvider, HookRegistry
 from strands.multiagent import GraphBuilder
 from strands.session import FileSessionManager
 
@@ -163,6 +166,77 @@ def _needs_no_specialist(state: Any) -> bool:
     owes the user a digest saying so, rather than ending silently.
     """
     return not any(_wakes(node_id, state) for node_id in SPECIALISTS)
+
+
+# --------------------------------------------------------------------------
+# Giving findings their identity before the specialists act on them
+# --------------------------------------------------------------------------
+
+
+class FindingRecorder(HookProvider):
+    """Promote triage's drafts into contract `Finding`s the moment triage ends.
+
+    **This exists so that a decision card can cite the evidence it was actually
+    based on.** Findings used to get their ids in `harvest()`, which runs *after*
+    the whole graph — so while a specialist was calling `cancel_subscription`,
+    no finding had an id yet, nothing in the store backed the call, and
+    `PolicyHook` had no choice but to synthesise a `ProposedAction` with
+    `finding_id="unbacked"` and a placeholder `Evidence` reading "Tool call
+    cancel_subscription with [...]". That string was what the user saw under
+    "why am I being asked this", on every card the product has ever raised.
+
+    `AfterNodeCallEvent` is the only seam between triage finishing and the
+    specialists starting: it carries the orchestrator as `event.source`, whose
+    `.state` is the same `GraphState` the edge conditions read. Note 1 in the
+    module docstring still holds — this is a *multi-agent* event, so it belongs
+    on the builder, and it governs nothing. It only assigns identity, which is
+    code's job and never a model's.
+
+    The promoted findings go into `invocation_state`, which Strands propagates by
+    reference to every node, tool and tool-hook. `harvest()` then reuses them
+    rather than minting a second set, so the id on the card and the id in the
+    store are the same id.
+    """
+
+    def __init__(self, household_id: str, run_id: str) -> None:
+        self.household_id = household_id
+        self.run_id = run_id
+
+    def register_hooks(self, registry: HookRegistry) -> None:
+        registry.add_callback(AfterNodeCallEvent, self.record)
+
+    def record(self, event: AfterNodeCallEvent) -> None:
+        if event.node_id != NODE_TRIAGE:
+            return
+
+        state = getattr(event.source, "state", None)
+        if state is None:
+            logger.warning("no graph state on the triage node event; findings stay unbacked")
+            return
+
+        findings = promote_findings(state, self.household_id, self.run_id)
+        if findings is not None:
+            # Assign rather than mutate in place: `event.invocation_state` is the
+            # dict every downstream tool and hook already holds a reference to.
+            event.invocation_state["findings"] = findings
+            logger.info("recorded %d finding(s) before the specialists ran", len(findings))
+
+
+def promote_findings(
+    state: Any, household_id: str, run_id: str, *, now: datetime | None = None
+) -> list[Finding]:
+    """Triage's drafts as contract `Finding`s, with ids assigned here."""
+    now = now or utcnow()
+    return [
+        finding_from_draft(
+            draft,
+            finding_id=new_id("fin"),
+            household_id=household_id,
+            run_id=run_id,
+            created_at=now,
+        )
+        for draft in _triage_findings(state)
+    ]
 
 
 # --------------------------------------------------------------------------
@@ -331,6 +405,11 @@ def build_graph(
 
     builder.set_entry_point(NODE_INGEST)
     builder.set_max_node_executions(MAX_NODE_EXECUTIONS)
+
+    # Multi-agent events only — see note 1. This one assigns finding ids between
+    # triage and the specialists so the gate can back each card with the evidence
+    # the finding was actually built on. It governs nothing.
+    builder.set_hook_providers([FindingRecorder(household_id, run_id)])
     # Note 2: on the builder, never on a node Agent.
     builder.set_session_manager(
         session_manager or FileSessionManager(session_id=session_id, storage_dir=str(session_dir))
@@ -402,16 +481,15 @@ def harvest(
     # serves both the edge conditions during the run and the harvest after it.
     source = result
 
-    findings = [
-        finding_from_draft(
-            draft,
-            finding_id=new_id("fin"),
-            household_id=run.household_id,
-            run_id=run.run_id,
-            created_at=now,
-        )
-        for draft in _triage_findings(source)
-    ]
+    # `FindingRecorder` already promoted these, before the specialists ran, so
+    # that their tool calls could be backed by them. Reuse that list rather than
+    # minting a second set: two sets of ids for one set of findings would mean
+    # the id on the card and the id in the store disagree, which is the exact
+    # bug the recorder exists to close. Promoting here is the fallback for a
+    # caller that assembled the graph itself and has no recorder.
+    findings = run.invocation_state.get("findings")
+    if not findings:
+        findings = promote_findings(source, run.household_id, run.run_id, now=now)
 
     actions: list[ProposedAction] = []
     for node_id in SPECIALISTS:
@@ -437,6 +515,97 @@ def harvest(
             now=now,
         ),
     )
+
+
+def summarise_run(run: GraphRun, outcome: RunHarvest) -> RunStats:
+    """The run's numbers, measured from the gate's own record of what it decided.
+
+    Never written by a model, and never taken from the scenario data. The
+    autonomy rate is the product's central claim, so every figure behind it is
+    counted. `signals_ingested` is read off `invocation_state`, where the
+    ungoverned `load_signals` tool stashes the real `Signal` objects, rather than
+    off anything the model said about them.
+
+    A **resumed** run reports zero signals and zero findings, and that is correct
+    rather than a gap: a resumed graph replays only the interrupted node, so
+    ingest and triage stay completed and do not run again. Counting them a second
+    time would inflate exactly the numbers the autonomy chart is built from.
+    """
+    verdicts = run.policy_hook.verdicts
+    proposed = len(verdicts)
+    autonomous = sum(1 for _action, verdict in verdicts if verdict.allow_silently)
+    return RunStats(
+        signals_ingested=len(run.invocation_state.get("signals") or []),
+        findings_created=len(outcome.findings),
+        actions_proposed=proposed,
+        actions_autonomous=autonomous,
+        decisions_raised=proposed - autonomous,
+        policies_applied=sum(1 for _action, verdict in verdicts if verdict.policy_id),
+        estimated_annual_savings=annual_savings_from(run.policy_hook.executed),
+    )
+
+
+RECURRING_SAVINGS = frozenset(
+    {ActionKind.CANCEL_SUBSCRIPTION, ActionKind.DOWNGRADE_PLAN, ActionKind.CLOSE_ACCOUNT}
+)
+"""Actions whose `estimated_impact` is a *monthly* cost that stops recurring."""
+
+ONE_OFF_SAVINGS = frozenset({ActionKind.DISPUTE_CHARGE})
+"""Actions worth their face value once. A refund is not an annual saving."""
+
+
+def annual_savings_from(actions: list[ProposedAction]) -> Money | None:
+    """`RunStats.estimated_annual_savings`, counted from what the run actually did.
+
+    Declared in `/contracts` since the freeze and never populated, so it has been
+    `null` on every run the product has produced.
+
+    Two rules make the number defensible:
+
+    **Only actions that executed count** — `PolicyHook.executed`, which is
+    everything that actually ran, whether it ran silently or because the user
+    approved it. A *pending* `cancel_subscription` is a proposal, not a saving:
+    the user has not answered and may say no. Counting proposals would let the
+    headline figure be inflated by asking for things rather than by doing them,
+    which is precisely the behaviour this product exists to argue against.
+
+    **Only recurring costs are annualised.** Cancelling a GBP 38/month gym saves
+    GBP 456 a year; winning a GBP 38 dispute saves GBP 38. Multiplying the second
+    by twelve would be the kind of arithmetic that makes a demo unbelievable to
+    anyone who checks it.
+
+    Mixed currencies are not summed — the first contributing action sets the
+    currency and anything else is skipped with a warning. A single household is
+    realistically one currency, and a silently wrong total is worse than a
+    slightly incomplete one.
+    """
+    total = 0
+    currency: str | None = None
+
+    for action in actions:
+        if action.estimated_impact is None:
+            continue
+        if action.kind in RECURRING_SAVINGS:
+            months = 12
+        elif action.kind in ONE_OFF_SAVINGS:
+            months = 1
+        else:
+            continue
+
+        if currency is None:
+            currency = action.estimated_impact.currency
+        elif action.estimated_impact.currency != currency:
+            logger.warning(
+                "skipping %s from the annual savings: %s does not match %s",
+                action.action_id,
+                action.estimated_impact.currency,
+                currency,
+            )
+            continue
+
+        total += action.estimated_impact.amount_minor * months
+
+    return Money(amount_minor=total, currency=currency or "GBP") if total else None
 
 
 def _brief_from(
@@ -467,11 +636,19 @@ def _brief_from(
     if draft is None:
         # The brief node did not run — normal when the graph is suspended waiting
         # on the user. Still emit a digest so the run has a renderable record.
-        headline = (
-            f"{len(pending_decision_ids)} decision(s) need you"
-            if pending_decision_ids
-            else "Nothing needs you today"
-        )
+        # This string ships. The brief node does not run when the graph suspends
+        # waiting on the user, which is exactly the state the fixture set is
+        # generated in -- so the fallback, not the model's wording, is what a
+        # judge reads. "1 decision(s) need you" is not the voice of the rest of
+        # the product; "Nothing needs you today" is the line the web app and both
+        # API backends already use for the empty case.
+        count = len(pending_decision_ids)
+        if count == 0:
+            headline = "Nothing needs you today"
+        elif count == 1:
+            headline = "One thing needs you today"
+        else:
+            headline = f"{count} things need you today"
         handled: list[str] = []
     else:
         headline = draft.headline

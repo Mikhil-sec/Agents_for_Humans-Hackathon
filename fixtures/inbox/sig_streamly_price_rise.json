@@ -1,0 +1,8 @@
+{
+  "body": "We're updating our prices to keep bringing you the shows you love. This will be reflected in your next payment.",
+  "merchant": "Streamly",
+  "occurred_at": "2026-08-04T08:00:00Z",
+  "signal_id": "sig_streamly_price_rise",
+  "source": "mock_gmail",
+  "subject": "We're updating our prices"
+}

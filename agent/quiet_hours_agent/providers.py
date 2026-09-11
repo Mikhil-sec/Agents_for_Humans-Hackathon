@@ -79,19 +79,29 @@ def _build(mode: str) -> Any | None:
 
     try:
         bundle = lane_c_providers(ProviderMode.LIVE if mode == "live" else ProviderMode.MOCK)
-    except NotImplementedError as exc:
-        # The expected state until Lane C's `c/mock-providers` step lands. Not an
-        # error in mock mode — it is the reason `signals.py` still has a stand-in.
+    except (NotImplementedError, FileNotFoundError) as exc:
+        # The only two conditions the fallback exists for, and both mean the same
+        # thing: **Lane C's data or code is not there yet.**
+        #
+        # `NotImplementedError` — the provider bundle has not been written
+        #     (`registry.py` still raises this for `LIVE`).
+        # `FileNotFoundError` — the bundle exists but the raw fixture set does
+        #     not. Lane C's `require_fixture_set()` checks all five files
+        #     eagerly, at build time, and raises `FixturesNotFoundError`, which
+        #     subclasses `FileNotFoundError`. Caught structurally rather than by
+        #     name because the class lives in `mock._fixtures`, a private module
+        #     — Lane A codes against `base.py` and does not reach past it.
+        #
+        # Anything else is a defect in a bundle that *does* exist: a malformed
+        # `household.json`, a pydantic validation failure, a bad date. Those now
+        # propagate in **both** modes rather than quietly downgrading mock mode
+        # to the stand-in, which would hide the breakage behind a demo that still
+        # runs but is worse. That is consistent with root rule 3: a clean clone
+        # ships committed, valid fixtures, so this can only fire on a genuine bug,
+        # and a bug should fail in CI rather than degrade on a judge's machine.
         if mode == "live":
-            raise ProvidersUnavailable(
-                f"Lane C's live providers are not implemented yet: {exc}"
-            ) from exc
-        _warn_once(mode, "Lane C's mock providers are not implemented yet")
-        return None
-    except Exception as exc:
-        if mode == "live":
-            raise ProvidersUnavailable(f"could not build live providers: {exc}") from exc
-        _warn_once(mode, f"could not build mock providers ({exc})")
+            raise ProvidersUnavailable(f"Lane C's live providers are unavailable: {exc}") from exc
+        _warn_once(mode, f"Lane C's mock providers are unavailable ({exc})")
         return None
 
     logger.info("using Lane C's %s providers", mode)

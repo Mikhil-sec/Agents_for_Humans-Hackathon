@@ -1,0 +1,2208 @@
+{
+  "Aviva": [
+    {
+      "amount": {
+        "amount_minor": 21400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-08-26T09:00:00Z",
+      "signal_id": "hist_aviva_1"
+    }
+  ],
+  "Boots": [
+    {
+      "amount": {
+        "amount_minor": 650,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_boots_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 1622,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-02T09:00:00Z",
+      "signal_id": "hist_boots_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 2595,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-09T09:00:00Z",
+      "signal_id": "hist_boots_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 1018,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-15T09:00:00Z",
+      "signal_id": "hist_boots_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 1990,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-22T09:00:00Z",
+      "signal_id": "hist_boots_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 2963,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-28T09:00:00Z",
+      "signal_id": "hist_boots_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 1386,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-04T09:00:00Z",
+      "signal_id": "hist_boots_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 2358,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-11T09:00:00Z",
+      "signal_id": "hist_boots_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 781,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-15T09:00:00Z",
+      "signal_id": "hist_boots_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 1754,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-22T09:00:00Z",
+      "signal_id": "hist_boots_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 2726,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-29T09:00:00Z",
+      "signal_id": "hist_boots_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 1149,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-05T09:00:00Z",
+      "signal_id": "hist_boots_12"
+    },
+    {
+      "amount": {
+        "amount_minor": 2122,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-11T09:00:00Z",
+      "signal_id": "hist_boots_13"
+    },
+    {
+      "amount": {
+        "amount_minor": 3094,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-18T09:00:00Z",
+      "signal_id": "hist_boots_14"
+    },
+    {
+      "amount": {
+        "amount_minor": 1517,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-24T09:00:00Z",
+      "signal_id": "hist_boots_15"
+    }
+  ],
+  "British Gas": [
+    {
+      "amount": {
+        "amount_minor": 9450,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-05T09:00:00Z",
+      "signal_id": "hist_britishgas_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 9260,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-05T09:00:00Z",
+      "signal_id": "hist_britishgas_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 9590,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-05T09:00:00Z",
+      "signal_id": "hist_britishgas_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 9370,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-05T09:00:00Z",
+      "signal_id": "hist_britishgas_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 9640,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-05T09:00:00Z",
+      "signal_id": "hist_britishgas_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 9310,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-05T09:00:00Z",
+      "signal_id": "hist_britishgas_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 9520,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-05T09:00:00Z",
+      "signal_id": "hist_britishgas_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 9380,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-05T09:00:00Z",
+      "signal_id": "hist_britishgas_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 9610,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-05T09:00:00Z",
+      "signal_id": "hist_britishgas_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 9290,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-05T09:00:00Z",
+      "signal_id": "hist_britishgas_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 9490,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-05T09:00:00Z",
+      "signal_id": "hist_britishgas_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 9410,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-05T09:00:00Z",
+      "signal_id": "hist_britishgas_12"
+    }
+  ],
+  "Camden Council": [
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-01T09:00:00Z",
+      "signal_id": "hist_camden_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-01T09:00:00Z",
+      "signal_id": "hist_camden_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-01T09:00:00Z",
+      "signal_id": "hist_camden_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-01T09:00:00Z",
+      "signal_id": "hist_camden_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-01T09:00:00Z",
+      "signal_id": "hist_camden_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-01T09:00:00Z",
+      "signal_id": "hist_camden_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-01T09:00:00Z",
+      "signal_id": "hist_camden_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-01T09:00:00Z",
+      "signal_id": "hist_camden_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-01T09:00:00Z",
+      "signal_id": "hist_camden_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 16800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-01T09:00:00Z",
+      "signal_id": "hist_camden_10"
+    }
+  ],
+  "Dropbox": [
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-14T09:00:00Z",
+      "signal_id": "hist_dropbox_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-14T09:00:00Z",
+      "signal_id": "hist_dropbox_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-14T09:00:00Z",
+      "signal_id": "hist_dropbox_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-14T09:00:00Z",
+      "signal_id": "hist_dropbox_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-14T09:00:00Z",
+      "signal_id": "hist_dropbox_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-14T09:00:00Z",
+      "signal_id": "hist_dropbox_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-14T09:00:00Z",
+      "signal_id": "hist_dropbox_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-14T09:00:00Z",
+      "signal_id": "hist_dropbox_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-14T09:00:00Z",
+      "signal_id": "hist_dropbox_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-14T09:00:00Z",
+      "signal_id": "hist_dropbox_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-14T09:00:00Z",
+      "signal_id": "hist_dropbox_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 999,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-14T09:00:00Z",
+      "signal_id": "hist_dropbox_12"
+    }
+  ],
+  "FitLife": [
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-03T09:00:00Z",
+      "signal_id": "hist_fitlife_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-03T09:00:00Z",
+      "signal_id": "hist_fitlife_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-03T09:00:00Z",
+      "signal_id": "hist_fitlife_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-03T09:00:00Z",
+      "signal_id": "hist_fitlife_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-03T09:00:00Z",
+      "signal_id": "hist_fitlife_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-03T09:00:00Z",
+      "signal_id": "hist_fitlife_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-03T09:00:00Z",
+      "signal_id": "hist_fitlife_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-03T09:00:00Z",
+      "signal_id": "hist_fitlife_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-03T09:00:00Z",
+      "signal_id": "hist_fitlife_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-03T09:00:00Z",
+      "signal_id": "hist_fitlife_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-03T09:00:00Z",
+      "signal_id": "hist_fitlife_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-03T09:00:00Z",
+      "signal_id": "hist_fitlife_12"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-08-03T09:00:00Z",
+      "signal_id": "hist_fitlife_13"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-07-03T09:00:00Z",
+      "signal_id": "hist_fitlife_14"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-06-03T09:00:00Z",
+      "signal_id": "hist_fitlife_15"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-05-03T09:00:00Z",
+      "signal_id": "hist_fitlife_16"
+    },
+    {
+      "amount": {
+        "amount_minor": 3800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-04-03T09:00:00Z",
+      "signal_id": "hist_fitlife_17"
+    }
+  ],
+  "Google One": [
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_googleone_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-26T09:00:00Z",
+      "signal_id": "hist_googleone_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-26T09:00:00Z",
+      "signal_id": "hist_googleone_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-26T09:00:00Z",
+      "signal_id": "hist_googleone_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-26T09:00:00Z",
+      "signal_id": "hist_googleone_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-26T09:00:00Z",
+      "signal_id": "hist_googleone_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-26T09:00:00Z",
+      "signal_id": "hist_googleone_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-26T09:00:00Z",
+      "signal_id": "hist_googleone_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-26T09:00:00Z",
+      "signal_id": "hist_googleone_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-26T09:00:00Z",
+      "signal_id": "hist_googleone_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-26T09:00:00Z",
+      "signal_id": "hist_googleone_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 799,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-26T09:00:00Z",
+      "signal_id": "hist_googleone_12"
+    }
+  ],
+  "Hyperoptic": [
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 3200,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-12T09:00:00Z",
+      "signal_id": "hist_hyperoptic_12"
+    }
+  ],
+  "Little Acorns Nursery": [
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-01T09:00:00Z",
+      "signal_id": "hist_nursery_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-01T09:00:00Z",
+      "signal_id": "hist_nursery_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-01T09:00:00Z",
+      "signal_id": "hist_nursery_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-01T09:00:00Z",
+      "signal_id": "hist_nursery_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-01T09:00:00Z",
+      "signal_id": "hist_nursery_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-01T09:00:00Z",
+      "signal_id": "hist_nursery_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-01T09:00:00Z",
+      "signal_id": "hist_nursery_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-01T09:00:00Z",
+      "signal_id": "hist_nursery_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-01T09:00:00Z",
+      "signal_id": "hist_nursery_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-01T09:00:00Z",
+      "signal_id": "hist_nursery_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-01T09:00:00Z",
+      "signal_id": "hist_nursery_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 68000,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-01T09:00:00Z",
+      "signal_id": "hist_nursery_12"
+    }
+  ],
+  "Octopus Energy": [
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-15T09:00:00Z",
+      "signal_id": "hist_octopus_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-15T09:00:00Z",
+      "signal_id": "hist_octopus_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-15T09:00:00Z",
+      "signal_id": "hist_octopus_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-15T09:00:00Z",
+      "signal_id": "hist_octopus_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-15T09:00:00Z",
+      "signal_id": "hist_octopus_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-15T09:00:00Z",
+      "signal_id": "hist_octopus_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-15T09:00:00Z",
+      "signal_id": "hist_octopus_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-15T09:00:00Z",
+      "signal_id": "hist_octopus_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-15T09:00:00Z",
+      "signal_id": "hist_octopus_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-15T09:00:00Z",
+      "signal_id": "hist_octopus_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-15T09:00:00Z",
+      "signal_id": "hist_octopus_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 9400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-15T09:00:00Z",
+      "signal_id": "hist_octopus_12"
+    }
+  ],
+  "Pret A Manger": [
+    {
+      "amount": {
+        "amount_minor": 320,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_pret_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 495,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-17T09:00:00Z",
+      "signal_id": "hist_pret_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 670,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-08T09:00:00Z",
+      "signal_id": "hist_pret_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 386,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-30T09:00:00Z",
+      "signal_id": "hist_pret_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 561,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-21T09:00:00Z",
+      "signal_id": "hist_pret_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 737,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-12T09:00:00Z",
+      "signal_id": "hist_pret_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 452,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-03T09:00:00Z",
+      "signal_id": "hist_pret_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 628,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-24T09:00:00Z",
+      "signal_id": "hist_pret_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 343,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-15T09:00:00Z",
+      "signal_id": "hist_pret_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 519,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-06T09:00:00Z",
+      "signal_id": "hist_pret_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 694,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-28T09:00:00Z",
+      "signal_id": "hist_pret_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 410,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-19T09:00:00Z",
+      "signal_id": "hist_pret_12"
+    },
+    {
+      "amount": {
+        "amount_minor": 585,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-10T09:00:00Z",
+      "signal_id": "hist_pret_13"
+    },
+    {
+      "amount": {
+        "amount_minor": 761,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-01T09:00:00Z",
+      "signal_id": "hist_pret_14"
+    },
+    {
+      "amount": {
+        "amount_minor": 476,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-22T09:00:00Z",
+      "signal_id": "hist_pret_15"
+    },
+    {
+      "amount": {
+        "amount_minor": 651,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-13T09:00:00Z",
+      "signal_id": "hist_pret_16"
+    },
+    {
+      "amount": {
+        "amount_minor": 367,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-04T09:00:00Z",
+      "signal_id": "hist_pret_17"
+    },
+    {
+      "amount": {
+        "amount_minor": 542,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-26T09:00:00Z",
+      "signal_id": "hist_pret_18"
+    },
+    {
+      "amount": {
+        "amount_minor": 718,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-17T09:00:00Z",
+      "signal_id": "hist_pret_19"
+    },
+    {
+      "amount": {
+        "amount_minor": 433,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-08T09:00:00Z",
+      "signal_id": "hist_pret_20"
+    },
+    {
+      "amount": {
+        "amount_minor": 609,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-27T09:00:00Z",
+      "signal_id": "hist_pret_21"
+    },
+    {
+      "amount": {
+        "amount_minor": 324,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-18T09:00:00Z",
+      "signal_id": "hist_pret_22"
+    },
+    {
+      "amount": {
+        "amount_minor": 500,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-09T09:00:00Z",
+      "signal_id": "hist_pret_23"
+    },
+    {
+      "amount": {
+        "amount_minor": 675,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-31T09:00:00Z",
+      "signal_id": "hist_pret_24"
+    },
+    {
+      "amount": {
+        "amount_minor": 391,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-22T09:00:00Z",
+      "signal_id": "hist_pret_25"
+    },
+    {
+      "amount": {
+        "amount_minor": 566,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-13T09:00:00Z",
+      "signal_id": "hist_pret_26"
+    },
+    {
+      "amount": {
+        "amount_minor": 742,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-04T09:00:00Z",
+      "signal_id": "hist_pret_27"
+    },
+    {
+      "amount": {
+        "amount_minor": 457,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-26T09:00:00Z",
+      "signal_id": "hist_pret_28"
+    },
+    {
+      "amount": {
+        "amount_minor": 632,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-17T09:00:00Z",
+      "signal_id": "hist_pret_29"
+    },
+    {
+      "amount": {
+        "amount_minor": 348,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-08T09:00:00Z",
+      "signal_id": "hist_pret_30"
+    },
+    {
+      "amount": {
+        "amount_minor": 523,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-29T09:00:00Z",
+      "signal_id": "hist_pret_31"
+    },
+    {
+      "amount": {
+        "amount_minor": 699,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-20T09:00:00Z",
+      "signal_id": "hist_pret_32"
+    },
+    {
+      "amount": {
+        "amount_minor": 414,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-11T09:00:00Z",
+      "signal_id": "hist_pret_33"
+    },
+    {
+      "amount": {
+        "amount_minor": 590,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-02T09:00:00Z",
+      "signal_id": "hist_pret_34"
+    },
+    {
+      "amount": {
+        "amount_minor": 765,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-24T09:00:00Z",
+      "signal_id": "hist_pret_35"
+    },
+    {
+      "amount": {
+        "amount_minor": 481,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-15T09:00:00Z",
+      "signal_id": "hist_pret_36"
+    },
+    {
+      "amount": {
+        "amount_minor": 656,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-06T09:00:00Z",
+      "signal_id": "hist_pret_37"
+    },
+    {
+      "amount": {
+        "amount_minor": 372,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-27T09:00:00Z",
+      "signal_id": "hist_pret_38"
+    },
+    {
+      "amount": {
+        "amount_minor": 547,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-18T09:00:00Z",
+      "signal_id": "hist_pret_39"
+    },
+    {
+      "amount": {
+        "amount_minor": 723,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-09T09:00:00Z",
+      "signal_id": "hist_pret_40"
+    }
+  ],
+  "Sainsbury's": [
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_sainsburys_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 4698,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-12T09:00:00Z",
+      "signal_id": "hist_sainsburys_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 7597,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-29T09:00:00Z",
+      "signal_id": "hist_sainsburys_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 2896,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-15T09:00:00Z",
+      "signal_id": "hist_sainsburys_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 5795,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-01T09:00:00Z",
+      "signal_id": "hist_sainsburys_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 8694,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-17T09:00:00Z",
+      "signal_id": "hist_sainsburys_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 3993,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-03T09:00:00Z",
+      "signal_id": "hist_sainsburys_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 6892,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-20T09:00:00Z",
+      "signal_id": "hist_sainsburys_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 2191,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-06T09:00:00Z",
+      "signal_id": "hist_sainsburys_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 5090,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-22T09:00:00Z",
+      "signal_id": "hist_sainsburys_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 7989,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-08T09:00:00Z",
+      "signal_id": "hist_sainsburys_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 3288,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-25T09:00:00Z",
+      "signal_id": "hist_sainsburys_12"
+    },
+    {
+      "amount": {
+        "amount_minor": 6187,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-11T09:00:00Z",
+      "signal_id": "hist_sainsburys_13"
+    },
+    {
+      "amount": {
+        "amount_minor": 9086,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-25T09:00:00Z",
+      "signal_id": "hist_sainsburys_14"
+    },
+    {
+      "amount": {
+        "amount_minor": 4385,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-11T09:00:00Z",
+      "signal_id": "hist_sainsburys_15"
+    },
+    {
+      "amount": {
+        "amount_minor": 7284,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-28T09:00:00Z",
+      "signal_id": "hist_sainsburys_16"
+    },
+    {
+      "amount": {
+        "amount_minor": 2583,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-14T09:00:00Z",
+      "signal_id": "hist_sainsburys_17"
+    },
+    {
+      "amount": {
+        "amount_minor": 5482,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-31T09:00:00Z",
+      "signal_id": "hist_sainsburys_18"
+    },
+    {
+      "amount": {
+        "amount_minor": 8381,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-17T09:00:00Z",
+      "signal_id": "hist_sainsburys_19"
+    },
+    {
+      "amount": {
+        "amount_minor": 3680,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-03T09:00:00Z",
+      "signal_id": "hist_sainsburys_20"
+    },
+    {
+      "amount": {
+        "amount_minor": 6579,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-19T09:00:00Z",
+      "signal_id": "hist_sainsburys_21"
+    },
+    {
+      "amount": {
+        "amount_minor": 1878,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-05T09:00:00Z",
+      "signal_id": "hist_sainsburys_22"
+    },
+    {
+      "amount": {
+        "amount_minor": 4777,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-22T09:00:00Z",
+      "signal_id": "hist_sainsburys_23"
+    },
+    {
+      "amount": {
+        "amount_minor": 7676,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-08T09:00:00Z",
+      "signal_id": "hist_sainsburys_24"
+    },
+    {
+      "amount": {
+        "amount_minor": 2975,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-24T09:00:00Z",
+      "signal_id": "hist_sainsburys_25"
+    },
+    {
+      "amount": {
+        "amount_minor": 5874,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-10T09:00:00Z",
+      "signal_id": "hist_sainsburys_26"
+    }
+  ],
+  "Shell": [
+    {
+      "amount": {
+        "amount_minor": 4800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_shell_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 5715,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-21T09:00:00Z",
+      "signal_id": "hist_shell_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 6630,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-15T09:00:00Z",
+      "signal_id": "hist_shell_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 5146,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-10T09:00:00Z",
+      "signal_id": "hist_shell_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 6061,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-04T09:00:00Z",
+      "signal_id": "hist_shell_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 6977,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-27T09:00:00Z",
+      "signal_id": "hist_shell_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 5492,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-22T09:00:00Z",
+      "signal_id": "hist_shell_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 6408,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-17T09:00:00Z",
+      "signal_id": "hist_shell_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 4923,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-11T09:00:00Z",
+      "signal_id": "hist_shell_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 5839,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-06T09:00:00Z",
+      "signal_id": "hist_shell_10"
+    }
+  ],
+  "Streamly": [
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-08T09:00:00Z",
+      "signal_id": "hist_streamly_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-08T09:00:00Z",
+      "signal_id": "hist_streamly_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-08T09:00:00Z",
+      "signal_id": "hist_streamly_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-08T09:00:00Z",
+      "signal_id": "hist_streamly_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-08T09:00:00Z",
+      "signal_id": "hist_streamly_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-08T09:00:00Z",
+      "signal_id": "hist_streamly_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-08T09:00:00Z",
+      "signal_id": "hist_streamly_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-08T09:00:00Z",
+      "signal_id": "hist_streamly_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-08T09:00:00Z",
+      "signal_id": "hist_streamly_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-08T09:00:00Z",
+      "signal_id": "hist_streamly_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-08T09:00:00Z",
+      "signal_id": "hist_streamly_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 1299,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-08T09:00:00Z",
+      "signal_id": "hist_streamly_12"
+    }
+  ],
+  "TV Licence": [
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 1375,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-20T09:00:00Z",
+      "signal_id": "hist_tvlicence_12"
+    }
+  ],
+  "TfL": [
+    {
+      "amount": {
+        "amount_minor": 280,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "signal_id": "hist_tfl_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 798,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-08T09:00:00Z",
+      "signal_id": "hist_tfl_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 1317,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-21T09:00:00Z",
+      "signal_id": "hist_tfl_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 476,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-03T09:00:00Z",
+      "signal_id": "hist_tfl_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 995,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-15T09:00:00Z",
+      "signal_id": "hist_tfl_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 1513,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-28T09:00:00Z",
+      "signal_id": "hist_tfl_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 672,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-10T09:00:00Z",
+      "signal_id": "hist_tfl_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 1191,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-22T09:00:00Z",
+      "signal_id": "hist_tfl_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 350,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-04T09:00:00Z",
+      "signal_id": "hist_tfl_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 868,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-17T09:00:00Z",
+      "signal_id": "hist_tfl_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 1387,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-27T09:00:00Z",
+      "signal_id": "hist_tfl_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 546,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-09T09:00:00Z",
+      "signal_id": "hist_tfl_12"
+    },
+    {
+      "amount": {
+        "amount_minor": 1065,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-22T09:00:00Z",
+      "signal_id": "hist_tfl_13"
+    },
+    {
+      "amount": {
+        "amount_minor": 1583,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-04T09:00:00Z",
+      "signal_id": "hist_tfl_14"
+    },
+    {
+      "amount": {
+        "amount_minor": 742,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-17T09:00:00Z",
+      "signal_id": "hist_tfl_15"
+    },
+    {
+      "amount": {
+        "amount_minor": 1261,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-29T09:00:00Z",
+      "signal_id": "hist_tfl_16"
+    },
+    {
+      "amount": {
+        "amount_minor": 420,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-11T09:00:00Z",
+      "signal_id": "hist_tfl_17"
+    },
+    {
+      "amount": {
+        "amount_minor": 938,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-24T09:00:00Z",
+      "signal_id": "hist_tfl_18"
+    },
+    {
+      "amount": {
+        "amount_minor": 1457,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-06T09:00:00Z",
+      "signal_id": "hist_tfl_19"
+    },
+    {
+      "amount": {
+        "amount_minor": 616,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-18T09:00:00Z",
+      "signal_id": "hist_tfl_20"
+    }
+  ],
+  "Thames Water": [
+    {
+      "amount": {
+        "amount_minor": 3430,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-22T09:00:00Z",
+      "signal_id": "hist_thameswater_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 3340,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-22T09:00:00Z",
+      "signal_id": "hist_thameswater_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 3490,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-22T09:00:00Z",
+      "signal_id": "hist_thameswater_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 3390,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-22T09:00:00Z",
+      "signal_id": "hist_thameswater_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 3520,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-22T09:00:00Z",
+      "signal_id": "hist_thameswater_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 3370,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-22T09:00:00Z",
+      "signal_id": "hist_thameswater_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 3460,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-22T09:00:00Z",
+      "signal_id": "hist_thameswater_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 3400,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-22T09:00:00Z",
+      "signal_id": "hist_thameswater_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 3510,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-22T09:00:00Z",
+      "signal_id": "hist_thameswater_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 3350,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-22T09:00:00Z",
+      "signal_id": "hist_thameswater_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 3450,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-22T09:00:00Z",
+      "signal_id": "hist_thameswater_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 3410,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-22T09:00:00Z",
+      "signal_id": "hist_thameswater_12"
+    }
+  ],
+  "Vodafone (A)": [
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-18T09:00:00Z",
+      "signal_id": "hist_vodafone_a_12"
+    }
+  ],
+  "Vodafone (T)": [
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-08-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_1"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-07-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_2"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-06-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_3"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-05-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_4"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-04-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_5"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-03-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_6"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-02-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_7"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2026-01-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_8"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-12-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_9"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-11-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_10"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-10-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_11"
+    },
+    {
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "GBP"
+      },
+      "occurred_at": "2025-09-18T09:00:00Z",
+      "signal_id": "hist_vodafone_t_12"
+    }
+  ]
+}

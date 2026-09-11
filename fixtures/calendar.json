@@ -1,0 +1,18 @@
+[
+  {
+    "body": "Bridge Street Dental asks you to confirm 48h in advance.",
+    "end_at": "2026-07-28T10:00:00Z",
+    "merchant": "Bridge Street Dental",
+    "occurred_at": "2026-07-28T09:15:00Z",
+    "signal_id": "sig_dentist_appt",
+    "source": "mock_calendar",
+    "subject": "Dental check-up \u2014 please confirm"
+  },
+  {
+    "end_at": "2026-07-28T10:00:00Z",
+    "occurred_at": "2026-07-28T09:00:00Z",
+    "signal_id": "sig_standing_meeting",
+    "source": "mock_calendar",
+    "subject": "Weekly team sync"
+  }
+]

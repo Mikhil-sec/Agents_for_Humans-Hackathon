@@ -165,3 +165,167 @@ change.
 
 **Affects:** A generates it, B reads it, C supersedes it.
 
+---
+
+## 2026-08-28 — /fixtures is generated in two stages, permanently
+
+**Decision:** `make fixtures` runs Lane C's seeder and then Lane A's exporter, in
+that order, and both are required.
+
+```
+quiet_hours_integrations.mock.seed   ->  household.json, inbox/*.json,
+                                          transactions.json, calendar.json,
+                                          merchant_history.json
+quiet_hours_agent.export_fixtures    ->  decisions.json, activity.json,
+                                          policies.json, runs.json,
+                                          daily_brief.json
+```
+
+**This supersedes the 24 August entry**, which framed `export_fixtures` as a
+temporary stand-in that Lane C's seeder would replace outright. It is stage two,
+not a stopgap.
+
+**Why:** the two halves of `/fixtures` are different kinds of artifact. The first
+five are the household's world before the agent touches it — Lane C's script, and
+authoring them is the job. The last five are a record of what the agent did in that
+world: a decision card exists because a signal was ingested, a finding was formed,
+an action was proposed and the policy engine declined to auto-approve it, and it
+carries a real `interrupt_id`, `session_id` and evidence citing real signal ids.
+Hand-authoring those would assert the autonomy curve rather than measure it, and the
+"only interrupts when there is a real decision" claim is the one a judge will probe
+hardest.
+
+**Scope, stated plainly:** landing Lane C's mock providers does not by itself move
+the four-week replay onto Lane C's data. `signals.py::load_signals_for` resolves a
+scripted scenario before consulting the providers, so the replay runs on Lane A's
+`scenarios.py`; the provider path serves the single-day run. Mock mode drives a
+scripted model — zero-credential `make demo` is root `AGENTS.md` rule 3 — and those
+scripts are keyed to signal ids, so the replay can only reason over Lane C's world
+once Lane A's weekly scripts are re-keyed onto frozen Lane C ids. That is a
+follow-on, tracked as A8, and it requires stable `signal_id`s, week membership on
+every raw item, and a scenario-to-signal-id manifest from Lane C.
+
+**Failure mode this closes:** `providers.py` fails open in mock mode by design, so
+the first bundle Lane C returned could have silently replaced Lane A's stand-in with
+an empty day. Lane C closed it from their side in `c/mock-providers` with an eager
+`require_fixture_set()` in `build_mock_providers`, which validates all five raw files
+before a bundle is handed back, so an unseeded `/fixtures` raises at build time
+rather than returning providers that each fail on first read.
+
+Lane A narrowed to match. The mock-mode fallback now covers
+`(NotImplementedError, FileNotFoundError)` only — the two "Lane C is not here yet"
+conditions — and any other failure propagates in both modes, because the fallback is
+for Lane C being *absent*, not for Lane C being *broken*. Separately,
+`signals.py::_from_providers` still tolerates one dead source but now raises
+`SignalSourcesUnavailable` when all three fail: a bundle-level fault hits every
+provider equally, and an empty signal list reads down the whole stack as a quiet day,
+which `WeekResult.autonomy_rate` scores as 1.0. A caller bug would otherwise publish
+itself as a perfect autonomy score.
+
+**Outstanding, and it lands with `c/fixtures-full`:** Lane A anchors its read window
+to wall-clock `now` (`LOOKBACK`, `CALENDAR_HORIZON`, and `tools/ingest.py` passing no
+`now`), while the fixture world is anchored to a fixed `DEFAULT_AS_OF` of 2026-08-26
+with the last signal dated 23 August. As written, the day run will read zero signals
+from a fully seeded `/fixtures` — three empty lists, no exception — and report a
+quiet day. Lane C has been asked to expose the reference date on the bundle as
+`Providers.as_of` so mock mode can anchor to the fixture world's clock; Lane A makes
+the change once that seam exists.
+
+**Affects:** C writes the five raw files and freezes their ids; A runs stage two and
+owns the `Makefile` change; B reads the result and should expect `runs.json` to gain
+its fourth point when A8 lands.
+
+---
+
+## 2026-08-28 — the vertical slice moves to 7 September; the submission date does not
+
+**Decision:** the end-to-end slice milestone moves from **31 August to 7 September**.
+Everything after it — Phase 3 polish from the 8th, the 12 September feature freeze,
+the submission itself — stays exactly where it was.
+
+**Why:** all three of us have been busier than the original plan assumed. A week is
+recoverable now; discovering on 6 September that the slice never closed is not.
+
+**What it costs, stated plainly so nobody is surprised:** the submission date is
+fixed, so this week comes out of **Phase 2 depth**, not out of the end. Phase 1 and
+Phase 2 now overlap, and anything in Phase 2 that is not on the critical path for the
+slice is the first thing to cut. Lane A's graph, policy learning and replay are
+already done, so the compression falls on B and C.
+
+**This date cannot move again.** A second slip has nowhere to go and lands on polish
+and the video — the two things judges actually see. If the 7th looks at risk, cut
+scope using `docs/lanes/TWO_PERSON_FALLBACK.md` rather than moving the date.
+
+**Unchanged:** record the slice working the day it closes, as video insurance.
+
+**Affects:** everyone. `docs/ROADMAP.md` updated. The critical path runs through Lane
+B — `web/` has no `package.json` and cannot install, and `POST /api/decisions/{id}/respond`
+is still a stub; the slice cannot close until both are real.
+
+---
+
+## 2026-09-07 — findings get their ids before the specialists run, not after
+
+**Decision:** triage's findings are promoted into contract `Finding`s by a
+`FindingRecorder` hook on `AfterNodeCallEvent`, between triage completing and the
+first specialist starting. `graph.harvest()` reuses that list instead of minting a
+second set of ids.
+
+**Why:** findings used to get their ids in `harvest()`, which runs after the whole
+graph. So while a specialist was calling `cancel_subscription`, no finding existed to
+point at, and `PolicyHook` had no choice but to synthesise a `ProposedAction` with
+`finding_id="unbacked"` and a placeholder `Evidence` reading *"Tool call
+cancel_subscription with ['merchant', 'monthly_amount_minor', 'rationale', 'reason']"*.
+That string was what the user read under "why am I being asked this", on **every card
+the product has ever raised**.
+
+**Affects Lane B directly.** `DecisionCard.evidence` now carries a real `signal_id`
+and a quoted line from the household's own inbox, so the card can render its evidence
+rather than hiding the field. The action also carries `params["category"]` copied from
+its finding, which is what a `CATEGORY`-scoped policy is matched against — previously
+only `tag_merchant` supplied one, so that scope was nearly unreachable.
+
+**Note 1 in `graph.py` still holds:** `PolicyHook` goes on each node `Agent`, never on
+the `GraphBuilder`. `FindingRecorder` is on the builder precisely because it is a
+multi-agent hook and governs nothing — it only assigns identity, which is code's job.
+
+## 2026-09-07 — `estimated_annual_savings` counts what executed, not what was proposed
+
+**Decision:** `RunStats.estimated_annual_savings` is counted from
+`PolicyHook.executed` — actions whose tool call actually ran and succeeded, whether
+silently or because the user approved them. Recurring costs
+(`cancel_subscription`, `downgrade_plan`, `close_account`) are annualised; a one-off
+(`dispute_charge`) is counted once; `pay_bill` is money going out and is not a saving.
+
+**Why:** the field has been declared in `/contracts` since the freeze and `null` on
+every run the product has produced. Two rules make the number defensible. Counting
+*proposals* would let the headline figure be inflated by asking for things rather than
+by doing them, which is the exact behaviour this product exists to argue against.
+Annualising a refund is the kind of arithmetic that makes a demo unbelievable to
+anyone who checks it.
+
+**Consequence worth knowing before the video:** the fixture set's fourth week reports
+`null`, because its one cancellation is still pending. Answer the card and the number
+appears. That is the intended behaviour and it is a better demo beat than a static
+figure.
+
+**Affects Lane B:** `runs.json` now populates the field for weeks 1–3
+(GBP 611.88 / 107.88 / 336.00) and leaves week 4 null. Treat null as "nothing secured
+yet", not as "not measured".
+
+## 2026-09-07 — the run's clock comes from the fixture world, not the wall
+
+**Decision:** `signals.resolve_now(explicit, bundle)` resolves a run's "now" in
+priority order: an explicit argument, then `Providers.as_of`, then `QH_AS_OF`, then
+wall clock. Every read window is anchored to it.
+
+**Why:** Lane C's fixture world is anchored to a fixed reference date (2026-08-26).
+A `LOOKBACK` measured from `datetime.now(UTC)` falls entirely after that world ends, so
+all three providers return empty lists — and **an empty list is not an exception**. It
+reads down the stack as a quiet day: no findings, no actions, and
+`RunStats.autonomy_rate` scoring zero actions as a perfect **1.0**. Verified before the
+fix: wall clock returned 0 signals, the anchored clock returns 2.
+
+**Affects everyone.** A defect that publishes itself as a perfect autonomy score is the
+worst kind this codebase can produce, so `export_fixtures` now refuses to write a
+fixture set generated from a run that ingested no signals.

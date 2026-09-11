@@ -1,10 +1,10 @@
 [
   {
-    "run_id": "run_5ff619af241c47248128349c",
+    "run_id": "run_95c7a3f8a7d4406cb8a51e39",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_5ff619af241c47248128349c",
+    "session_id": "qh-hh_demo-run_95c7a3f8a7d4406cb8a51e39",
     "started_at": "2026-08-01T00:00:00Z",
     "finished_at": "2026-08-01T00:00:00Z",
     "stats": {
@@ -14,16 +14,19 @@
       "actions_autonomous": 3,
       "decisions_raised": 4,
       "policies_applied": 0,
-      "estimated_annual_savings": null
+      "estimated_annual_savings": {
+        "amount_minor": 61188,
+        "currency": "GBP"
+      }
     },
     "error": null
   },
   {
-    "run_id": "run_d3e060bd98e1437b996e3af9",
+    "run_id": "run_aacd088796d14d5888526a8a",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_d3e060bd98e1437b996e3af9",
+    "session_id": "qh-hh_demo-run_aacd088796d14d5888526a8a",
     "started_at": "2026-08-08T00:00:00Z",
     "finished_at": "2026-08-08T00:00:00Z",
     "stats": {
@@ -33,16 +36,19 @@
       "actions_autonomous": 5,
       "decisions_raised": 2,
       "policies_applied": 2,
-      "estimated_annual_savings": null
+      "estimated_annual_savings": {
+        "amount_minor": 10788,
+        "currency": "GBP"
+      }
     },
     "error": null
   },
   {
-    "run_id": "run_11509b5d17674001be88faf4",
+    "run_id": "run_b0584cd9746e43b78a819ba9",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_11509b5d17674001be88faf4",
+    "session_id": "qh-hh_demo-run_b0584cd9746e43b78a819ba9",
     "started_at": "2026-08-15T00:00:00Z",
     "finished_at": "2026-08-15T00:00:00Z",
     "stats": {
@@ -50,6 +56,28 @@
       "findings_created": 4,
       "actions_proposed": 6,
       "actions_autonomous": 5,
+      "decisions_raised": 1,
+      "policies_applied": 2,
+      "estimated_annual_savings": {
+        "amount_minor": 33600,
+        "currency": "GBP"
+      }
+    },
+    "error": null
+  },
+  {
+    "run_id": "run_8d331fa317254f7e8d7933c1",
+    "household_id": "hh_demo",
+    "trigger": "schedule",
+    "status": "waiting_on_user",
+    "session_id": "qh-hh_demo-run_8d331fa317254f7e8d7933c1",
+    "started_at": "2026-08-22T00:00:00Z",
+    "finished_at": null,
+    "stats": {
+      "signals_ingested": 4,
+      "findings_created": 4,
+      "actions_proposed": 7,
+      "actions_autonomous": 6,
       "decisions_raised": 1,
       "policies_applied": 2,
       "estimated_annual_savings": null
