@@ -1,10 +1,10 @@
 [
   {
-    "run_id": "run_95c7a3f8a7d4406cb8a51e39",
+    "run_id": "run_2bf8b87992a241ef8539ddc1",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_95c7a3f8a7d4406cb8a51e39",
+    "session_id": "qh-hh_demo-run_2bf8b87992a241ef8539ddc1",
     "started_at": "2026-08-01T00:00:00Z",
     "finished_at": "2026-08-01T00:00:00Z",
     "stats": {
@@ -15,18 +15,18 @@
       "decisions_raised": 4,
       "policies_applied": 0,
       "estimated_annual_savings": {
-        "amount_minor": 61188,
+        "amount_minor": 21576,
         "currency": "GBP"
       }
     },
     "error": null
   },
   {
-    "run_id": "run_aacd088796d14d5888526a8a",
+    "run_id": "run_940f32716eb948f898d8df43",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_aacd088796d14d5888526a8a",
+    "session_id": "qh-hh_demo-run_940f32716eb948f898d8df43",
     "started_at": "2026-08-08T00:00:00Z",
     "finished_at": "2026-08-08T00:00:00Z",
     "stats": {
@@ -44,11 +44,11 @@
     "error": null
   },
   {
-    "run_id": "run_b0584cd9746e43b78a819ba9",
+    "run_id": "run_81e45c1b4b75409d93d9a3c7",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "completed",
-    "session_id": "qh-hh_demo-run_b0584cd9746e43b78a819ba9",
+    "session_id": "qh-hh_demo-run_81e45c1b4b75409d93d9a3c7",
     "started_at": "2026-08-15T00:00:00Z",
     "finished_at": "2026-08-15T00:00:00Z",
     "stats": {
@@ -66,11 +66,11 @@
     "error": null
   },
   {
-    "run_id": "run_8d331fa317254f7e8d7933c1",
+    "run_id": "run_b7029d7fdc34440e83f4dfce",
     "household_id": "hh_demo",
     "trigger": "schedule",
     "status": "waiting_on_user",
-    "session_id": "qh-hh_demo-run_8d331fa317254f7e8d7933c1",
+    "session_id": "qh-hh_demo-run_b7029d7fdc34440e83f4dfce",
     "started_at": "2026-08-22T00:00:00Z",
     "finished_at": null,
     "stats": {

@@ -1,14 +1,14 @@
 [
   {
-    "decision_id": "dec_e119e0702ffa5f2f9072cd58",
+    "decision_id": "dec_67ebc1a21e095351b0f757fa",
     "household_id": "hh_demo",
-    "run_id": "run_8d331fa317254f7e8d7933c1",
-    "action_id": "act_efa391eb15c2498bb87f0ada",
-    "session_id": "qh-hh_demo-run_8d331fa317254f7e8d7933c1",
-    "interrupt_id": "v1:before_tool_call:tooluse_qh_0b796be9_0:e15fdd1e-9c42-512b-934f-1f5630eb1c09",
+    "run_id": "run_b7029d7fdc34440e83f4dfce",
+    "action_id": "act_109320138cba444db7a64719",
+    "session_id": "qh-hh_demo-run_b7029d7fdc34440e83f4dfce",
+    "interrupt_id": "v1:before_tool_call:tooluse_qh_5bb3d059_0:e15fdd1e-9c42-512b-934f-1f5630eb1c09",
     "interrupt_name": "qh-approval",
-    "headline": "Cancel subscription — PhotoCloud",
-    "body": "Nothing has been uploaded to it in four months.",
+    "headline": "Cancel subscription — FitLife",
+    "body": "GBP 456 a year for something unused since March.",
     "why_asking": "This changes a service you pay for, and no rule covers it yet.",
     "options": [
       {
@@ -23,7 +23,7 @@
         "label": "Always do this",
         "description": "Creates a rule so Quiet Hours stops asking.",
         "is_default": false,
-        "creates_policy_preview": "Always cancel subscription for PhotoCloud up to GBP 4.99"
+        "creates_policy_preview": "Always cancel subscription for FitLife up to GBP 38.00"
       },
       {
         "choice": "deny",
@@ -34,23 +34,23 @@
       }
     ],
     "amount": {
-      "amount_minor": 499,
+      "amount_minor": 3800,
       "currency": "GBP"
     },
     "estimated_impact": {
-      "amount_minor": 499,
+      "amount_minor": 3800,
       "currency": "GBP"
     },
     "evidence": [
       {
-        "signal_id": "w4_photocloud",
-        "excerpt": "Monthly charge of GBP 4.99. First charge after a 12-month free period.",
+        "signal_id": "w4_fitlife",
+        "excerpt": "Your annual membership renews in 6 days at GBP 456.00 for the year. No visit recorded since 12 March; GBP 38.00 has been taken every month since.",
         "source_ref": null
       }
     ],
     "status": "pending",
     "urgency_deadline": null,
-    "created_at": "2026-09-10T06:29:23.721535Z",
+    "created_at": "2026-09-12T04:54:22.629454Z",
     "resolved_at": null
   }
 ]

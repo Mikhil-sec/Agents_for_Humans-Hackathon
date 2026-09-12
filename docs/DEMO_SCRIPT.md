@@ -6,6 +6,12 @@ Must cover, per the rules: (1) the problem, (2) who it's for, (3) why it matters
 
 **Record against mock mode.** Nothing in this video should depend on live credentials working on the day.
 
+## Before you hit record
+
+- **Restart the demo first.** Answering the card is a one-way flip in the running store, so a second take needs a fresh start. `.local\stop-demo.ps1` then `.local\run-demo.ps1` puts the FitLife card back as pending — verified 12 September.
+- **Do not press "Check now" on camera.** It does nothing visible: a fixtures-mode run completes immediately, finds nothing new, and the page does not change. The script no longer uses it.
+- **Don't narrate dates on the Activity page.** The trail stamps every entry with the moment the fixtures were exported, so all twenty-six sit under one day heading. The *Insights* chart is the screen that carries the four-week axis correctly (1, 8, 15, 22 Aug) — make the time argument there.
+
 ---
 
 ## 0:00–0:35 — The problem
@@ -44,29 +50,31 @@ Must cover, per the rules: (1) the problem, (2) who it's for, (3) why it matters
 
 *Screen: live product. Do not narrate the UI — narrate what happened.*
 
-**1:25** — The Today screen. **Empty.** "Nothing needs you today."
+**1:25** — The Today screen, as the agent left it at seven this morning. One card. The header reads *"One thing needs you."*
 
-> "This is what a normal morning looks like. Nothing needs me. Underneath: six things it handled on its own this week."
+> "This is the whole product. Not a feed, not a digest I have to read — one thing. Underneath it, nineteen things it handled this month without asking me once."
 
-*Expand the activity trail. Show the silent actions with their reasoning.*
+*Scroll the "handled without asking" list. Let two or three sit on screen — the bills it paid under rules already granted.*
 
-**1:50** — Trigger a run. Cards appear.
+**1:50** — Back up to the card.
 
-> "Today is different. It found three things."
+> "One decision, and it waited for me to be awake to ask it."
 
-**2:00** — **Card one, the gym.**
+**2:00** — **The card.**
 
-> "FitLife. Thirty-eight pounds a month. Last visit: March the twelfth. Eleven charges since. It's not just telling me — it's already drafted the cancellation, and it's showing me exactly why it thinks this: here's the last visit, here are the charges."
+> "FitLife. Thirty-eight pounds a month — and it renews in six days at four hundred and fifty-six pounds for the year. For a gym I haven't been to since March.
+>
+> It isn't just flagging it. The cancellation is ready to go, and it's showing me exactly where it got this — the renewal notice, in the gym's own words."
 
-*Expand the evidence panel. Then click **"Cancel it — and always ask before renewing fitness"**.*
+*Expand the evidence panel and hold on it. Then click **"Always do this"**.*
 
-*Show the policy preview line before confirming.*
+*Hold on the policy preview line before it resolves.*
 
-> "And notice — it's telling me the rule I'm about to create, in plain English, before I create it. It never grants itself permission quietly."
+> "And notice — it tells me the rule I'm about to create, in plain English, before I create it: always cancel FitLife, up to thirty-eight pounds. It never grants itself permission quietly."
 
-**2:25** — The card resolves. Activity trail updates. Savings counter moves to £456/yr.
+**2:25** — The card resolves and the screen goes to the empty state: *"Nothing needs you today."*
 
-> "Behind the scenes, that approval resumed an agent run that had been suspended since seven this morning — sitting durably in S3, costing nothing, waiting for me."
+> "And that's what I actually want to see. Behind it, that approval resumed an agent run that had been suspended since seven this morning — parked durably, costing nothing, waiting for me."
 
 ## 2:40–3:20 — The mechanic that makes it different
 
@@ -96,15 +104,19 @@ Must cover, per the rules: (1) the problem, (2) who it's for, (3) why it matters
 >
 > And interrupts with durable sessions. When the agent hits a decision it shouldn't make alone, it calls `interrupt`, the process exits, and the run resumes days later exactly where it stopped. That's what lets an agent run at 7am while you're asleep and still ask you a question.
 >
-> It's deployed on AgentCore Runtime, with AgentCore Memory holding what it's learned about the household."
+> It's built for AgentCore Runtime, with AgentCore Memory holding what it's learned about the household. And everything you've just watched runs from a clean clone with no AWS credentials at all — the whole loop, interrupt and resume included."
+
+**Do not say "it's deployed on AgentCore".** Nothing is deployed. Bedrock has returned `ValidationException: Operation not allowed` on this account for every model since 26 August — Amazon's own Nova included — and support case 178815493800207 is still unassigned. Saying it on camera would be a factual misstatement to judges about a submission. The zero-credential claim is the better line anyway: it is unusual, and a judge can verify it in two minutes.
 
 ## 4:00–4:15 — Close
 
-*Screen: back to the empty Today screen.*
+*Screen: the empty Today screen you landed on at 2:25 — no need to navigate anywhere.*
 
 > "Most agents ask you about everything. Quiet Hours earns the right to stop asking.
 >
 > It's open source, it runs from a clean clone with no credentials, and there's a live demo linked below."
+
+**The live demo line is safe to say.** `https://mikhil-sec.github.io/Agents_for_Humans-Hackathon/` was checked on 12 September: HTTP 200, loads for a logged-out stranger, all four screens, answering a card and revoking a rule both work. Re-check it in an incognito window on the day before uploading.
 
 ---
 

@@ -1,12 +1,12 @@
 {
-  "brief_id": "brf_ed25f2edb1424e11965fe338",
+  "brief_id": "brf_14d1a31ffeff40fbb818c3fe",
   "household_id": "hh_demo",
-  "run_id": "run_8d331fa317254f7e8d7933c1",
-  "generated_at": "2026-09-10T06:29:23.722492Z",
+  "run_id": "run_b7029d7fdc34440e83f4dfce",
+  "generated_at": "2026-09-12T04:54:22.631577Z",
   "headline": "One thing needs you today",
   "handled_silently": [],
   "pending_decision_ids": [
-    "dec_e119e0702ffa5f2f9072cd58"
+    "dec_67ebc1a21e095351b0f757fa"
   ],
   "savings_this_month": {
     "amount_minor": 16420,

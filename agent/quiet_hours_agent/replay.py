@@ -136,38 +136,44 @@ WEEK_1 = register(
                 ],
             ),
             Item(
-                signal_id="w1_fitlife",
+                signal_id="w1_photocloud",
                 kind=SignalKind.TRANSACTION,
                 source="mock_bank",
-                subject="FITLIFE GYM MEMBERSHIP",
-                body="Monthly charge of GBP 38.00. No visit recorded in the last 90 days.",
-                merchant="FitLife",
-                category="fitness",
-                amount_minor=3800,
+                subject="PHOTOCLOUD PREMIUM",
+                body="Monthly charge of GBP 4.99. First charge after a 12-month free period.",
+                merchant="PhotoCloud",
+                category="software",
+                amount_minor=499,
+                # UNUSED_SUBSCRIPTION, not UNEXPECTED_CHARGE: routing is by
+                # finding kind, and only the negotiator holds
+                # `cancel_subscription`. An unexpected-charge finding wakes the
+                # bill analyst, which does not have that tool — so the action
+                # would simply never happen and the week would look quieter than
+                # it is. `test_replay.py` now checks this for every scenario.
                 finding_kind=FindingKind.UNUSED_SUBSCRIPTION,
-                finding_title="FitLife gym unused for 90 days",
-                finding_detail="GBP 38.00 a month, GBP 456 a year, with no recorded visit.",
-                confidence=0.88,
+                finding_title="PhotoCloud has started charging for something unused",
+                finding_detail="A 12-month free period ended and GBP 4.99 a month has begun.",
+                confidence=0.86,
                 actions=[
                     Act(
                         tool="tag_merchant",
                         params={
-                            "merchant": "FitLife",
-                            "category": "fitness",
+                            "merchant": "PhotoCloud",
+                            "category": "software",
                             "rationale": "Categorised so future runs reason about it correctly.",
                         },
-                        summary="Tagged FitLife as fitness",
+                        summary="Tagged PhotoCloud as software",
                         rationale="Internal bookkeeping with no external effect.",
                     ),
                     Act(
                         tool="cancel_subscription",
                         params={
-                            "merchant": "FitLife",
-                            "monthly_amount_minor": 3800,
-                            "reason": "No recorded visit in 90 days.",
-                            "rationale": "GBP 456 a year for something unused since May.",
+                            "merchant": "PhotoCloud",
+                            "monthly_amount_minor": 499,
+                            "reason": "Free period ended; charge was not expected.",
+                            "rationale": "Nothing has been uploaded to it in four months.",
                         },
-                        summary="Cancel FitLife (GBP 38.00/month)",
+                        summary="Cancel PhotoCloud (GBP 4.99/month)",
                         rationale="This ends a service you pay for, so Quiet Hours asked.",
                         risk="confirm",
                     ),
@@ -642,14 +648,26 @@ WEEK_4 = register(
                 ],
             ),
             Item(
-                signal_id="w4_photocloud",
-                kind=SignalKind.TRANSACTION,
-                source="mock_bank",
-                subject="PHOTOCLOUD PREMIUM",
-                body="Monthly charge of GBP 4.99. First charge after a 12-month free period.",
-                merchant="PhotoCloud",
-                category="software",
-                amount_minor=499,
+                signal_id="w4_fitlife",
+                kind=SignalKind.EMAIL,
+                source="mock_gmail",
+                subject="Your FitLife membership renews soon",
+                # This is the card a judge opens the demo on, so the excerpt has
+                # to carry the whole argument on its own: what is about to be
+                # taken, and why it should not be. Both halves are stated by the
+                # signal itself — the evidence panel quotes it verbatim.
+                body=(
+                    "Your annual membership renews in 6 days at GBP 456.00 for the year. "
+                    "No visit recorded since 12 March; GBP 38.00 has been taken every "
+                    "month since."
+                ),
+                merchant="FitLife",
+                category="fitness",
+                # The monthly charge, not the renewal: `hooks.py` reads
+                # `monthly_amount_minor` for the card's amount and the policy
+                # ceiling, and a rule written against GBP 456 would be a rule
+                # about the wrong number. The GBP 456 lives in the evidence.
+                amount_minor=3800,
                 # UNUSED_SUBSCRIPTION, not UNEXPECTED_CHARGE: routing is by
                 # finding kind, and only the negotiator holds
                 # `cancel_subscription`. An unexpected-charge finding wakes the
@@ -657,19 +675,19 @@ WEEK_4 = register(
                 # would simply never happen and the week would look quieter than
                 # it is. `test_replay.py` now checks this for every scenario.
                 finding_kind=FindingKind.UNUSED_SUBSCRIPTION,
-                finding_title="PhotoCloud has started charging for something unused",
-                finding_detail="A 12-month free period ended and GBP 4.99 a month has begun.",
-                confidence=0.86,
+                finding_title="FitLife renews in 6 days at GBP 456.00",
+                finding_detail="Unused since March, and the annual renewal is six days away.",
+                confidence=0.91,
                 actions=[
                     Act(
                         tool="cancel_subscription",
                         params={
-                            "merchant": "PhotoCloud",
-                            "monthly_amount_minor": 499,
-                            "reason": "Free period ended; charge was not expected.",
-                            "rationale": "Nothing has been uploaded to it in four months.",
+                            "merchant": "FitLife",
+                            "monthly_amount_minor": 3800,
+                            "reason": "No recorded visit since March; the renewal is six days away.",
+                            "rationale": "GBP 456 a year for something unused since March.",
                         },
-                        summary="Cancel PhotoCloud (GBP 4.99/month)",
+                        summary="Cancel FitLife before it renews (GBP 38.00/month)",
                         rationale="A merchant Quiet Hours has no rule for, so it asked.",
                         risk="confirm",
                     ),

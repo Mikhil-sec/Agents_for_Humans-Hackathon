@@ -1,6 +1,25 @@
 [
   {
-    "policy_id": "pol_0dc5d8ccd4e94cb09032fcc0",
+    "policy_id": "pol_0eca113e558141fb81e19097",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "cancel_subscription",
+    "merchant": "PhotoCloud",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 499,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always cancel subscription for PhotoCloud up to GBP 4.99",
+    "created_from_decision_id": "dec_ea4d32c6e7cc5384bc25b62b",
+    "created_at": "2026-08-01T00:00:00Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_2161410dd53148bd9b015321",
     "household_id": "hh_demo",
     "scope": "merchant",
     "action_kind": "pay_bill",
@@ -12,71 +31,14 @@
     },
     "effect": "auto_approve",
     "description": "Always pay bill for Thames Water up to GBP 42.00",
-    "created_from_decision_id": "dec_0b568dacc34d50cab8d94e8e",
+    "created_from_decision_id": "dec_e11bbf0861665efba8a45666",
     "created_at": "2026-08-08T00:00:00Z",
     "revoked_at": null,
     "times_applied": 2,
     "last_applied_at": null
   },
   {
-    "policy_id": "pol_1b833bf4c0954da4b8a2a222",
-    "household_id": "hh_demo",
-    "scope": "merchant",
-    "action_kind": "cancel_subscription",
-    "merchant": "CloudBox",
-    "category": null,
-    "max_amount": {
-      "amount_minor": 899,
-      "currency": "GBP"
-    },
-    "effect": "auto_approve",
-    "description": "Always cancel subscription for CloudBox up to GBP 8.99",
-    "created_from_decision_id": "dec_a583b87d4a495964ba7bf7e0",
-    "created_at": "2026-08-08T00:00:00Z",
-    "revoked_at": null,
-    "times_applied": 0,
-    "last_applied_at": null
-  },
-  {
-    "policy_id": "pol_23de191199674799b3f664a3",
-    "household_id": "hh_demo",
-    "scope": "merchant",
-    "action_kind": "downgrade_plan",
-    "merchant": "BroadbandCo",
-    "category": null,
-    "max_amount": {
-      "amount_minor": 2800,
-      "currency": "GBP"
-    },
-    "effect": "auto_approve",
-    "description": "Always downgrade plan for BroadbandCo up to GBP 28.00",
-    "created_from_decision_id": "dec_b9dda97373585fe9aabadb21",
-    "created_at": "2026-08-15T00:00:00Z",
-    "revoked_at": null,
-    "times_applied": 0,
-    "last_applied_at": null
-  },
-  {
-    "policy_id": "pol_6f80be76395f4431b6ef7093",
-    "household_id": "hh_demo",
-    "scope": "merchant",
-    "action_kind": "pay_bill",
-    "merchant": "British Gas",
-    "category": null,
-    "max_amount": {
-      "amount_minor": 8420,
-      "currency": "GBP"
-    },
-    "effect": "auto_approve",
-    "description": "Always pay bill for British Gas up to GBP 84.20",
-    "created_from_decision_id": "dec_612254ad46b25eb9b2209922",
-    "created_at": "2026-08-01T00:00:00Z",
-    "revoked_at": null,
-    "times_applied": 3,
-    "last_applied_at": null
-  },
-  {
-    "policy_id": "pol_8f595ff48d8c4f7ba7030c37",
+    "policy_id": "pol_3bb7538d53ad4f0bbef8139e",
     "household_id": "hh_demo",
     "scope": "merchant",
     "action_kind": "cancel_subscription",
@@ -88,33 +50,14 @@
     },
     "effect": "auto_approve",
     "description": "Always cancel subscription for Streamly up to GBP 12.99",
-    "created_from_decision_id": "dec_ab925556474e53d0b8c0e62d",
+    "created_from_decision_id": "dec_eb3a1096b8f4546f8e1896a5",
     "created_at": "2026-08-01T00:00:00Z",
     "revoked_at": null,
     "times_applied": 0,
     "last_applied_at": null
   },
   {
-    "policy_id": "pol_be8705dec5234139a17f2495",
-    "household_id": "hh_demo",
-    "scope": "merchant",
-    "action_kind": "cancel_subscription",
-    "merchant": "FitLife",
-    "category": null,
-    "max_amount": {
-      "amount_minor": 3800,
-      "currency": "GBP"
-    },
-    "effect": "auto_approve",
-    "description": "Always cancel subscription for FitLife up to GBP 38.00",
-    "created_from_decision_id": "dec_20c3404c29635c4cb97bde91",
-    "created_at": "2026-08-01T00:00:00Z",
-    "revoked_at": null,
-    "times_applied": 0,
-    "last_applied_at": null
-  },
-  {
-    "policy_id": "pol_cbbf7be77eeb412abae549ff",
+    "policy_id": "pol_3f98a3d27e1b471db605fa17",
     "household_id": "hh_demo",
     "scope": "merchant",
     "action_kind": "reschedule_appointment",
@@ -123,10 +66,67 @@
     "max_amount": null,
     "effect": "auto_approve",
     "description": "Always reschedule appointment for Bridge Street Dental",
-    "created_from_decision_id": "dec_6c7ea4d5b6e959c492836904",
+    "created_from_decision_id": "dec_8ebd1f0a0e1e569f88b1dc6d",
     "created_at": "2026-08-01T00:00:00Z",
     "revoked_at": null,
     "times_applied": 1,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_6560f3bacf314d7297a91570",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "downgrade_plan",
+    "merchant": "BroadbandCo",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 2800,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always downgrade plan for BroadbandCo up to GBP 28.00",
+    "created_from_decision_id": "dec_d843914b988d5b02a2da894a",
+    "created_at": "2026-08-15T00:00:00Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_6bea7693496c454fb7544aa9",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "cancel_subscription",
+    "merchant": "CloudBox",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 899,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always cancel subscription for CloudBox up to GBP 8.99",
+    "created_from_decision_id": "dec_e8fce545ea6153f2b973468d",
+    "created_at": "2026-08-08T00:00:00Z",
+    "revoked_at": null,
+    "times_applied": 0,
+    "last_applied_at": null
+  },
+  {
+    "policy_id": "pol_a253149db2dc416faf76fb65",
+    "household_id": "hh_demo",
+    "scope": "merchant",
+    "action_kind": "pay_bill",
+    "merchant": "British Gas",
+    "category": null,
+    "max_amount": {
+      "amount_minor": 8420,
+      "currency": "GBP"
+    },
+    "effect": "auto_approve",
+    "description": "Always pay bill for British Gas up to GBP 84.20",
+    "created_from_decision_id": "dec_1eb1f48c9c95508da8ce9ffc",
+    "created_at": "2026-08-01T00:00:00Z",
+    "revoked_at": null,
+    "times_applied": 3,
     "last_applied_at": null
   }
 ]
