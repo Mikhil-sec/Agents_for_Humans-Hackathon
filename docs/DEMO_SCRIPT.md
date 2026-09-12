@@ -110,7 +110,7 @@ Must cover, per the rules: (1) the problem, (2) who it's for, (3) why it matters
 
 ## 4:00–4:15 — Close
 
-*Screen: the empty Today screen you landed on at 2:25 — no need to navigate anywhere.*
+*Screen: back to the empty Today screen. Click "Today" in the nav — it is still empty, because the card you answered at 2:25 stays answered for the rest of the session. Reusing the 2:25 footage works just as well.*
 
 > "Most agents ask you about everything. Quiet Hours earns the right to stop asking.
 >
