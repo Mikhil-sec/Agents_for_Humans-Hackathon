@@ -24,7 +24,12 @@ dependencies = [
     # in exactly the part of the SDK that moved. Widen it after the hackathon,
     # once there is time to re-verify against a newer release.
     "strands-agents>=1.53,<1.56",
-    "strands-agents-tools",
+    # `strands-agents-tools` was here and is not any more: nothing in the agent
+    # ever imported it. Every tool this project exposes is its own `@tool` in
+    # `tools/`, and each one's `ActionKind` has an entry in
+    # `DEFAULT_RISK_BY_ACTION` — that floor table is what the policy gate reads.
+    # A pre-built tool would propose an action kind the table does not know, so
+    # adding one means tiering it deliberately rather than importing it.
     "bedrock-agentcore",
     "boto3>=1.34",
     "pydantic>=2.7",

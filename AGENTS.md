@@ -66,7 +66,7 @@ The interrupt mechanic is the heart of the codebase. Read [docs/lanes/LANE_A_AGE
 
 ## Tech stack
 
-- **Agent** — Python 3.11+, `strands-agents`, `strands-agents-tools`, `bedrock-agentcore`
+- **Agent** — Python 3.11+, `strands-agents`, `bedrock-agentcore`
 - **Model** — Claude Sonnet 4.5 on Amazon Bedrock (`BedrockModel`)
 - **API** — FastAPI + Pydantic v2, deployed on Lambda Web Adapter
 - **Web** — Next.js 15 (App Router), TypeScript, Tailwind CSS

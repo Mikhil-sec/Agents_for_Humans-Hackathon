@@ -1397,3 +1397,54 @@ things were wrong or missing; all four are fixed.
    submission misses it by about eight hours.
 2. The video, the blog post and the submission text description remain Mikhil's, and
    none are started. The script can now be read as written.
+
+---
+
+## 13 September 2026 — Strands audit, and two overclaims in the submission text
+
+**Done**
+
+- **Audited whether the Strands SDK is genuinely used on the demo path**, since the video
+  records mock mode and Bedrock is account-blocked. It is. Introspecting the graph
+  `build_graph(mode="mock")` actually returns: `strands.multiagent.graph.Graph`, six
+  `strands.agent.agent.Agent` nodes, and `ScriptedModel` — which subclasses
+  `strands.models.model.Model`. **Only the LLM provider is scripted**; graph routing,
+  hook dispatch, tool execution, `event.interrupt()` and session persistence are all real
+  SDK machinery. The 7 spike tests pass, including graph-interrupt-survives-process-exit
+  on all three answer paths and the SDK-drift guard.
+- **Removed `strands-agents-tools` from `agent/pyproject.toml`.** Nothing in the repo ever
+  imported it. Left a comment saying why, and why adding a pre-built tool is not free:
+  every tool's `ActionKind` needs an entry in `DEFAULT_RISK_BY_ACTION`, which is the table
+  the policy gate reads.
+- **Corrected two overclaims in `SUBMISSION_CHECKLIST.md`** — same family as the
+  "deployed on AgentCore" line Yorvan caught, and both were headed for the Devpost form:
+  - **"MCP tools"**, claimed in the judging self-assessment and the draft description.
+    There is no MCP anywhere — `/agent`, `/integrations`, `/infra`, `/api` and
+    `/contracts` were all searched. The only hit is a comment in `integrations/base.py`
+    describing a *hypothetical* future Playwright MCP path.
+  - **The "Built with" service list.** It claimed Lambda, EventBridge and Amplify.
+    `/infra` contains only `AGENTS.md` and `DEPLOY.md` — there is no infrastructure code
+    of any kind. EventBridge appears in one docstring; there is no Lambda handler or
+    adapter anywhere. Rewritten to list what actually has code (Strands, FastAPI, Next.js,
+    DynamoDB, S3, SES) and to say Bedrock and AgentCore are what it is *written for*.
+
+**Verified how**
+
+- Live introspection of the mock-mode graph object, not a reading of the docs.
+- `grep` for `strands_tools`, `MCPClient` and `mcp` across every source directory.
+- `DEFAULT_RISK_BY_ACTION` / `effective_risk` read directly to make sure the comment I
+  left in `pyproject.toml` describes the real mechanism — my first draft of it was wrong
+  and said tools carry their own tier. They do not; the floor comes from the action kind.
+- 214 agent tests pass; `pyproject.toml` still parses.
+
+**Needs a decision — cross-lane, not mine to edit**
+
+- **`AGENTS.md` line 69** still lists `strands-agents-tools` in the tech stack. It is a
+  root shared file, so I have not touched it. One-word deletion whenever someone with the
+  standing to edit it gets there.
+- Worth a second opinion on how far to trim the "Built with" line. I removed Lambda,
+  EventBridge and Amplify because none of them have code behind them, but `web/amplify.yml`
+  does exist as a real build spec, and `ARCHITECTURE.md` describes the full deployment as
+  the design. If the team would rather frame those as "designed deployment target" and
+  keep them, that is defensible — what is not defensible is listing them flat alongside
+  services that genuinely run.

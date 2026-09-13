@@ -74,7 +74,7 @@ Score yourselves out of 5 the day before. Anything at 3 or below, ask whether an
 
 | Criterion | What they're asking | Our evidence | Score |
 |---|---|---|---|
-| **Technical Implementation** | Thorough, skilful use of Strands; genuine effort; non-trivial and working | Graph orchestration, hooks on `BeforeToolCallEvent`, durable interrupts with cross-process resume, structured output, MCP tools, AgentCore Runtime + Memory, live demo | /5 |
+| **Technical Implementation** | Thorough, skilful use of Strands; genuine effort; non-trivial and working | Graph orchestration, hooks on `BeforeToolCallEvent`, durable interrupts with cross-process resume, structured output, AgentCore Runtime + Memory *as code, not deployed*, live demo | /5 |
 | **Design** | A complete, coherent product — not a proof of concept | Decision inbox, empty state, activity trail, policies page, insights chart, digest email, dark mode, mobile | /5 |
 | **Potential Impact** | A credible, specific case for a real problem and a real audience | £456 forgotten gym; named audience (people with no slack); demonstrated savings; the solution visibly does the thing | /5 |
 | **Creativity & Originality** | Creative, non-obvious use of Strands; real understanding of the problem space | Earned autonomy — the interrupt rate provably falls; the interrupt *is* the product, not an edge case | /5 |
@@ -94,7 +94,7 @@ Draft it here, then paste into the form. Keep it tight — judges read a lot of 
 >
 > **What makes it different.** Autonomy is earned, not assumed. Approving an action can create a policy, shown to you in plain English before you grant it. The policy engine — deliberately deterministic code rather than a model — then handles that class of action silently on future runs. Over four weeks the agent's interrupt rate falls from four decisions in week one to one in week four — 75% fewer interruptions — while the number it handles on its own rises from three a week to six. Every autonomous action is logged with its reasoning and visible in the activity trail. Every policy is listed, counted and revocable in one click, and irreversible actions such as disputing a charge can never be auto-approved by any policy.
 >
-> **Built with** Strands Agents SDK (`GraphBuilder`, hooks, interrupts, durable sessions, structured output, MCP tools), Amazon Bedrock (Claude Sonnet 4.5), Bedrock AgentCore Runtime and Memory, Lambda, DynamoDB, S3, EventBridge, SES and Amplify.
+> **Built with** Strands Agents SDK — `GraphBuilder` for the multi-agent graph, a hook on `BeforeToolCallEvent` for the policy gate, `interrupt()` with a durable `SessionManager` for suspend-and-resume, and structured output on every node. FastAPI and Next.js 15 for the decision inbox; DynamoDB and S3 for stored state and Strands sessions; SES for the digest. Written for Amazon Bedrock (Claude Sonnet 4.5) and AgentCore Runtime and Memory.
 >
 > **Safety.** Even in live mode the agent creates email drafts and scheduled payment requests — it has no code path that sends mail or moves money unattended. The project ships in simulation mode by default and runs from a clean clone with no credentials.
 
