@@ -29,8 +29,14 @@ export function RunButton({ onFinished }: { onFinished: () => void }) {
       const run = await triggerRun();
       close.current = followRun(run.run_id, {
         onProgress: (event) => setMessage(event.message),
-        onFinished: () => {
-          setMessage(null);
+        onFinished: (event) => {
+          // **A run that finds nothing must still say so.** Clearing the message
+          // unconditionally meant the five progress frames flickered past and the
+          // screen returned to exactly its previous state — which reads as a dead
+          // button rather than as the honest answer, and "nothing new today" is
+          // the answer most days. A run that *did* raise a decision needs no
+          // message: the card itself is the result, so get out of its way.
+          setMessage(event.pending_decisions.length > 0 ? null : 'Checked just now — nothing new');
           setRunning(false);
           onFinished();
         },
