@@ -109,11 +109,14 @@ Full walkthrough: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 | Durable `SessionManager` (S3) | The suspended run survives process exit and resumes days later, exactly where it stopped |
 | `structured_output_model` | Typed `Finding` and `ProposedAction` objects, not JSON scraped from prose |
 | `invocation_state` | Household context reaches tools and hooks without entering the model's context |
-| MCP clients | DuckDuckGo for price benchmarking; Playwright for real cancellation flows |
 
 ### AWS services
 
-Bedrock (Claude Sonnet 4.5) · **AgentCore Runtime** · **AgentCore Memory** · AgentCore Gateway · Lambda · DynamoDB · S3 · EventBridge · SES · Amplify · Secrets Manager
+Bedrock (Claude Sonnet 4.5) · **AgentCore Runtime** · **AgentCore Memory** · DynamoDB · S3 · SES
+
+Each of these has a code path in the repo. None of them is deployed — see the dashed
+boxes in the diagram above, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the
+deployment this is designed for.
 
 ### Why the interrupt is the interesting part
 
